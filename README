@@ -1,0 +1,32 @@
+Suite à une demande sur le forum de developpez.com, j'ai décidé de "jouer le jeu"
+et de créer mon propre script permettant de compiler mingw-w64 en version 64bits multilib.
+
+Ce script prend l'ensemble du processus en charge, depuis la création des répertoires nécessaires
+à la compilation d'outils supplémentaires, en passant bien sur par la récupération des sources.
+
+PREREQUIS
+==========
+- une installation de MSYS utilisable
+- la possibilité d'invoquer wget (vous pouvez l'installer pour MSYS uniquement en invoquant mingw-get install msys-wget-bin)
+- Une chaine de compilation en état de marche (de préférence MinGW ou MinGW-w64)
+- un dossier dans le parent duquel  MSYS a les accès en écriture
+
+ARBORESCENCE
+============
+Entre les archives, les sources et la compilation, il est préférable de garder les différents fichiers clairement séparés.
+
+L'arborescence créée par le script prendra la forme de
+<Répertoire Racine> : dossier contenant le script ci-joint
+    |->build    (créé automatiquement par le script s'il n'existe pas):
+	|            dossier dans lequel seront créés tous les dossiers de compilation
+	|->archives (créé automatiquement par le script s'il n'existe pas):
+	|            Il s'agit du dossier dans lequel le script placera les archives téléchargées
+	|->logs     (créé automatiquement par le script s'il n'existe pas):
+	|            Le script va générer un maximum de fichiers log, afin de vous permettre de
+	|            retrouver facilement les éventuels problèmes. Il seront placés ici
+	|->sources (créé automatiquement par le script s'il n'existe pas):
+	|           dossier dans lequel seront placés le contenu des archives décompressées et / ou
+	|           les contenus récupérés par SVN
+	
+VARIABLES MODIFIABLES
+=====================
