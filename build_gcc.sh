@@ -4,6 +4,7 @@ BASE_DIR=`pwd`
 
 BUILD="x86_64-w64-mingw32"
 NEED_SOURCES="yes"
+FORCE_DOWNLOAD="no"
 NEED_EXTRACTION="yes"
 NEED_CLEAN_SOURCE="no"
 NEED_CLEAN_PREFIX="no"
@@ -18,6 +19,7 @@ WANT_ICU="yes"
 WANT_OPENSSL="yes"
 USE_SYSROOT="yes"
 COPY_LIBS_IN_GCC="no"
+USE_SVN_TRUNK_CRT="yes"
 PREFIX="/mingw"
 
 GMP_VER=-5.1.2
@@ -43,7 +45,8 @@ BINUTILS_FLAVOUR="release"
 
 BUILD_DIR="${BASE_DIR}/build"
 LOG_DIR="${BASE_DIR}/logs"
-SRC_DIR="${BASE_DIR}/source/"
+SRC_DIR="../../source"
+BASE_SRC="${BASE_DIR}/source"
 TAR_DIR="${BASE_DIR}/archives"
 
 LANGUAGES="c,c++,fortran,objc,obj-c++,lto"
@@ -128,16 +131,19 @@ ICONV_TAR=${GZ}
 GETTEXT_TAR=${GZ}
 ICU_TAR=${TGZ}
 OPENSSL_TAR=${GZ}
-
+SOURCEWAR_FTP="ftp://sourceware.org/pub"
 GMP_URL="ftp://ftp.gmplib.org/pub/gmp"
 MPFR_URL="http://www.mpfr.org/mpfr-current"
 MPC_URL="http://www.multiprecision.org/mpc/download"
-ISL_URL="ftp://gcc.gnu.org/pub/gcc/infrastructure"
-CLOOG_URL="ftp://gcc.gnu.org/pub/gcc/infrastructure"
-BINUTILS_URL="ftp://sourceware.org/pub/binutils"
-GCC_URL="ftp://gcc.gnu.org/pub/gcc"
+ISL_URL="${SOURCEWAR_FTP}/gcc/infrastructure"
+CLOOG_URL="${SOURCEWAR_FTP}/gcc/infrastructure"
+BINUTILS_URL="${SOURCEWAR_FTP}/binutils"
+GCC_URL="${SOURCEWAR_FTP}gcc"
 MINGW_SVN="svn://svn.code.sf.net/p/mingw-w64/code/tags"
-
+if [ "${USE_SVN_TRUNK_CRT}" == "yes" ]; then
+	MINGW_SVN="svn://svn.code.sf.net/p/mingw-w64/code/trunk"
+	MINGW_VER=""
+fi
 MAKE_URL="ftp://ftp.gnu.org/gnu/make"
 GDB_URL="ftp://ftp.gnu.org/gnu/gdb"
 LIBXML2_URL="ftp://xmlsoft.org/libxml2/"
@@ -150,9 +156,9 @@ MPFR_SRC="${SRC_DIR}/${MPFR}${MPFR_VER}"
 MPC_SRC="${SRC_DIR}/${MPC}${MPC_VER}"
 ISL_SRC="${SRC_DIR}/${ISL}${ISL_VER}"
 CLOOG_SRC="${SRC_DIR}/${CLOOG}${CLOOG_VER}"
-MIGW_BASE_SRC="${SRC_DIR}/mingw-w64"
-HEADERS_SRC="${MIGW_BASE_SRC}/mingw-w64-${HEADERS}"
-CRT_SRC="${MIGW_BASE_SRC}/mingw-w64-${CRT}"
+MINGW_BASE_SRC="${BASE_SRC}/mingw-w64"
+HEADERS_SRC="${MINGW_BASE_SRC}/mingw-w64-${HEADERS}"
+CRT_SRC="${MINGW_BASE_SRC}/mingw-w64-${CRT}"
 WINPTHREAD_SRC="${MINGW_BASE_SRC}/mingw-w64-libraries/winpthreads"
 BINUTILS_SRC="${SRC_DIR}/${BINUTILS}${BINUTILS_VER}"
 GCC_SRC="${SRC_DIR}/${GCC}${GCC_VER}"
@@ -186,7 +192,7 @@ WPT_64_FIRST_OPT="--prefix=${PREFIX}/wpt64 ${BUILD_OPT} {WPT_COMMON_SECOND}"
 WPT_32_FIRST_OPT="--prefix=${PREFIX}/wpt32 ${BUILD_OPT} {WPT_COMMON_FIRST} ${WPT_32_COMMON}"
 WPT_32_FIRST_OPT="--prefix=${PREFIX}/wpt32 ${BUILD_OPT} {WPT_COMMON_SECOND} ${WPT_32_COMMON}"
 BINUTILS_OPT="${PREFIX_OPT} ${SYSROOT_OPT} ${BUILD_OPT} --disable-nls --enable-auto-import"
-LANGUAGES_OPT="--enable-languages={LANGUAGES}"
+LANGUAGES_OPT="--enable-languages=${LANGUAGES}"
 BOOSTRAP_OFF="--disable-bootstrap"
 WERROR_OFF="--disable-werror"
 GCC_DEPS="--with-gmp=${DEPS_PREFIX} --with-mpfr=${DEPS_PREFIX} --with-mpc=${DEPS_PREFIX} \
@@ -205,7 +211,7 @@ GCC_OPT_FIRST="${GCC_OPT_BASE} ${BOOTSTRAP_OFF}"
 GCC_OPT_SECOND="${GCC_OPT_BASE} ${WERROR_OFF}"
 TOOLS_OPT=" ${PREFIX_OPT} ${SYSROOT_OPT} ${BUILD_OPT}"
 suppress_logs(){
-	cd ${BUILD_DIR}
+	cd ${LOG_DIR}
 	echo "removing old compilation log"
     rm -rf *.log
 }
@@ -216,62 +222,85 @@ erase_prefix_files(){
 	fi
 }
 create_symlinks(){
-	if [ -d ${PREFIX}/${mingw} ]; then
-		rm -rf ${PREFIX}/${mingw}
+	if [ -d "${PREFIX}/mingw" &&  -n "${PREFIX}" ]; then
+		rm -rf ${PREFIX}/mingw
 	fi
 	ln -s ${PREFIX}/${BUILD} ${PREFIX}/mingw
 }
 copy_libdir(){
-	if [ -d "${PREFIX}/${BUILD}/lib64" ]; then
-		rm -rf ${PREFIX}/${BUILD}/lib64 
-	fi
-	if [ -d "${PREFIX}/${BUILD}/lib32" ]; then
-		rm -rf ${PREFIX}/${BUILD}/lib32 
-	fi
-	if [ -d "${PREFIX}/${BUILD}/lib" ]; then
-		if [ "$BUILD" == "x86_64-w64-mingw32" ]; then
-			cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib64
-		elif [ "$BUILD" == "x86-w64-mingw32" ]; then
-			cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib32
+	if [ -n "${BUILD}" && -n "${PREFIX}" ]; then
+		if [ -d "${PREFIX}/${BUILD}/lib64"  && "$BUILD" == "x86-w64-x86_64-w64-mingw32" ]; then
+			rm -rf ${PREFIX}/${BUILD}/lib64 
+		fi
+		if [ -d "${PREFIX}/${BUILD}/lib32" &&  "$BUILD" == "x86-w64-mingw32" ]; then
+			rm -rf ${PREFIX}/${BUILD}/lib32 
+		fi
+		if [ -d "${PREFIX}/${BUILD}/lib"   ]; then
+			if [ "$BUILD" == "x86_64-w64-mingw32" ]; then
+				cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib64
+			elif [ "$BUILD" == "x86-w64-mingw32" ]; then
+				cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib32
+			fi
 		fi
 	fi
 }
 create_build_directories(){
     for dir in ${ALL_BUILD}; do
-		if [ ! -d "${BUILD_DIR}/${dir}" ]; then
+		if [ ! -d "${BUILD_DIR}/${dir}" ] && [ -n "${BUILD_DIR}" ] && [ -n "${dir}"  ] ; then
 			mkdir -p ${BUILD_DIR}/${dir}
 		else
 			rm -rf ${BUILD_DIR}/${dir}/*
 		fi
 	done
-	if [ ! -d "${TAR_DIR}" ]; then
+	if [ ! -d "${TAR_DIR}" ] && [ -n "${TAR_DIR}"  ]; then
 		mkdir -p ${TAR_DIR}
 	fi 
-	if [ ! -d "${SRC_DIR}" ]; then
-		mkdir -p ${SRC_DIR}
+	if [ ! -d "${BASE_SRC}" ]  && [ -n "${BASE_SRC}" ]; then
+		mkdir -p ${BASE_SRC}
 	fi
-	if [ ! -d "${LOG_DIR}" ]; then
+	if [ ! -d "${LOG_DIR}" ] && [ -n "${LOG_DIR}" ]; then
 		mkdir -p ${LOG_DIR}
 	fi
-	suppress_logs
+	if [ "${PASS}" == "1" ]; then
+		suppress_logs
+	fi
 }
 suppress_sources(){
 	if [ "${NEED_CLEAN_SOURCE}" == "yes" ]; then
 		echo "suppressing all source directories"
-		cd ${SRC_DIR}
-		rm -rf *
+		if [ -d "${BASE_SRC}" && -n "${BASE_SRC}" ]; then
+			cd ${BASE_SRC}
+			rm -rf *
+		fi
 		cd ${BUILD_DIR}
 	fi
 }
 wget_archive(){
+	WILL_GET="yes"
+	FILENAME=""
 	if [ "$#" == "4" ]; then
-		wget ${1}/${2}${3}${4}  -P ${TAR_DIR}  || exit 1
-	elif [ "$#" == "3" ]; then
-		wget ${1}/${2}${3}  -P ${TAR_DIR}  || exit 1
-	else
-		echo "Are you sure to want download ${1}/${2} ?"
-		exit  1
+		FILENAME="${2}${3}${4}"
+	elif  [ "$#" == "3" ]; then
+		FILENAME="${2}${3}"
+	elif  [ "$#" == "2" ]; then
+		FILENAME="${2}"
+	else 
+		echo "Do you realy want download the entiere directory?"
+		exit 1
 	fi
+	if [ -e "${TAR_DIR}/${FILENAME}" ]; then
+		if [ "${FORCE_DOWNLOAD}" == "yes" ]; then
+			rm -f "${TAR_DIR}/${FILENAME}"
+		else
+			WILL_GET="no"
+			echo "skipping ${FILENAME}"
+		fi
+	fi
+	if [ "${WILL_GET}" == "yes" ]; then
+		echo "getting ${FILENAME} from ${1}"
+		wget ${1}/${FILENAME} -P ${TAR_DIR} || exit 1
+	fi
+	
 }
 get_archives(){
 	if [ "$NEED_SOURCES" == "yes" ]; then
@@ -279,7 +308,7 @@ get_archives(){
 			mkdir -p ${TAR_DIR}
 		fi 
 		cd ${TAR_DIR}
-		wget_archive ${GMP_URL} ${GMP} ${GMP_VER} ${GMP_TAR}  
+		wget_archive "${GMP_URL}${GMP_VER}" ${GMP} ${GMP_VER} ${GMP_TAR}  
 		wget_archive ${MPFR_URL} ${MPFR} ${MPFR_VER} ${MPFR_TAR}
 		wget_archive ${MPC_URL} ${MPC} ${MPC_VER} ${MPC_TAR}
 		wget_archive ${ISL_URL} ${ISL} ${ISL_VER} ${ISL_TAR}
@@ -287,45 +316,51 @@ get_archives(){
 		wget_archive "${BINUTILS_URL}/${BINUTILS_FLAVOUR}s" ${BINUTILS} ${BINUTILS_VER} ${BINUTILS_TAR}
 		wget_archive "${GCC_URL}/${GCC_FLAVOUR}s/${GCC}${GCC_VER}" ${GCC} ${GCC_VER} ${GCC_TAR}
 		echo "getting mingw-w64 source from SVN"
-		svn checkout ${MINGW_SVN}/${MINGW_VER} ${MIGW_BASE_SRC} > ${LOG_DIR}/mingw_checkout.log 2>&1  || exit 1
-		
+		if [ "${MINGW_BASE_SRC}" == "${BASE_SRC}" ]; then
+			echo " you should have to define MINGW_BASE_SRC"
+			exit 1
+		fi
+		if [ -d "${MINGW_BASE_SRC}" ] && [ "${FORCE_DOWNLOAD}" != "yes" ]; then
+			cd ${MINGW_BASE_SRC}
+			svn update >>${LOG_DIR}/mingw_update.log 2>&1 || exit 1
+			cd ${TAR_DIR}
+		else
+			if [ "${FORCE_DOWNLOAD}" == "yes" ]; then
+				rm -rf ${MINGW_BASE_SRC}
+			fi
+			if [ "${USE_SVN_TRUNK_CRT}" == "yes" ]; then
+				svn checkout ${MINGW_SVN} ${MINGW_BASE_SRC} > ${LOG_DIR}/mingw_checkout.log 2>&1  || exit 1
+			else
+				svn checkout ${MINGW_SVN}/${MINGW_VER} ${MINGW_BASE_SRC} > ${LOG_DIR}/mingw_checkout.log 2>&1  || exit 1
+			fi
+		fi
 		cd ${BUILD_DIR}
 	fi
 }
 extract_source(){
 	cd  ${TAR_DIR}
-	ARGLIST=("$@")
-	ARGNUM=${#ARGLIST[@]}
-	FILE=""
-	EXTRACT=""
-	echo ${ARGLIST[${ARGNUM}-1]}
-	# if [ "${GZ}" == "${ARGLIST[${ARGNUM}-1]}" -o "${TGZ}" == "${ARGLIST[${ARGNUM}-1]}" ]; then
-			# EXTRACT="-vxzf"
-		# elif [ "${BZ}" == "$3" ]; then
-			# EXTRACT="-vxjf"
-		# else 
-			# echo "what's that for an archive ?"
-			# exit 1
-		# fi
-		# for ((i = 0; i<$ARGNUM;++i)); do
-			# FILE="${FILE}${ARGLIST[${i}]}"
-		# done
-	# fi
-	# echo "extracting source from ${FILE}"
-	# tar ${EXTRACT} ${FILE} -C ${SRC_DIR} > ${LOG_DIR}/${1}_untar.log  || exit 1
-	# cd ${BUILD_DIR}
+	VAR=`ls ${1}*`
+	VAR2=`echo ${VAR} | sed 's/.tar.gz//'`
+	EXT=""
+	if [ "${VAR2}" == "${1}" ]; then
+		EXT="-vxzf"
+	else
+		EXT="-vxjf"
+	fi
+	echo "extracting ${VAR}"
+		tar ${EXT} ${VAR} -C ${BASE_SRC} > ${LOG_DIR}/${1}_untar.log  || exit 1
 }
 
 extract_all(){
 	if [ "${NEED_EXTRACTION}" == "yes" ]; then
 		cd ${TAR_DIR}
-		extract_source ${GMP}  ${GMP_VER} ${GMP_TAR}
-		extract_source ${MPFR} ${MPFR_VER} ${MPFR_TAR}
-		extract_source ${MPC} ${MPC_VER} ${MPC_TAR}
-		extract_source ${ISL} ${ISL_VER} ${ISL_TAR}
-		extract_source ${CLOOG} ${CLOOG_VER} ${CLOOG_TAR}
-		extract_source ${BINUTILS} ${BINUTILS_VER} ${BINUTILS_TAR}
-		extract_source ${GCC} ${GCC_VER} ${GCC_TAR}
+		extract_source "${GMP}${GMP_VER}"
+		extract_source "${MPFR}${MPFR_VER}"
+		extract_source "${MPC}${MPC_VER}"
+		extract_source "${ISL}${ISL_VER}"
+		extract_source "${CLOOG}${CLOOG_VER}"
+		extract_source "${BINUTILS}${BINUTILS_VER}"
+		extract_source "${GCC}${GCC_VER}"
 		cd ${BUILD_DIR}
 	fi
 }
@@ -360,7 +395,7 @@ configure(){
 		COMMAND="${COMMAND} ${ARGLIST[${i}]}"
 	done
 	cd ${BUILD_DIR}/${THISBUILD_DIR}
-	${SRC}/${COMMAND} > ${BUILD_DIR}/${THISBUILD_DIR}_pass_${PASSNUMBER}_configure.log 2>&1  || exit 1
+	${SRC}/${COMMAND} >  ${LOG_DIR}/${THISBUILD_DIR}_pass_${PASSNUMBER}_configure.log 2>&1  || exit 1
 	echo "done"
 	echo
 	echo
@@ -369,12 +404,12 @@ configure(){
 build_and_install(){
     cd ${BUILD_DIR}/${1}
 	echo "building ${1} pass ${2}"
-	make > ${BUILD_DIR}/${1}_pass_${2}_make.log 2>&1  || exit 1
+	make >  ${LOG_DIR}//${1}_pass_${2}_make.log 2>&1  || exit 1
 	echo "done"
 	echo
 	echo
 	echo "installing ${1} pass ${2}"
-	make install >${BUILD_DIR}/${1}_pass_${2}_install.log 2>&1  || exit 1
+	make install > ${LOG_DIR}//${1}_pass_${2}_install.log 2>&1  || exit 1
 	echo "done"
 	echo
 	echo
@@ -383,9 +418,9 @@ build_and_install(){
 make_all_gcc(){
 	cd ${GCC}
 	echo "making all-gcc pass ${1}"
-	make all-gcc > ${BUILD_DIR}/all-gcc_pas${1}_make.log 2>&1  || exit 1
+	make all-gcc > ${LOG_DIR}/all-gcc_pas${1}_make.log 2>&1  || exit 1
 	echo "installing all-gcc pass ${1}"
-	make install-gcc > ${BUILD_DIR}/all-gcc_pas${1}_install.log 2>&1  || exit 1
+	make install-gcc > ${LOG_DIR}/all-gcc_pas${1}_install.log 2>&1  || exit 1
 	cd ${BUILD_DIR}
 }
 correct_libgcc_dir(){
@@ -450,11 +485,13 @@ build_winpthreads (){
 	
 }
 gcc_process(){
+	OPTIONS=""
 	 if [ "$1" == "1" ]; then
 		OPTIONS="${GCC_OPT_FIRST}"
 	else
 		OPTIONS="${GCC_OPT_SECOND}"
 	fi
+	
 	configure ${GCC} ${GCC_SRC} ${1} ${OPTIONS}
 	make_all_gcc ${1}
 	configure ${CRT} ${CRT_SRC} ${1} ${CRT_OPT}
@@ -510,8 +547,8 @@ build_gettext(){
 		if [ "$NEED_EXTRACTION" == "yes" ]; then
 			extract_source  ${GETTEXT} ${GETTEXT_VER} ${GETTEXT_TAR}
 		fi
-	configure ${GETTEXT} ${GETTEXT_SRC} ${PASS} ${TOOLS_OPT} &&
-	build_and_install ${GETTEXT} ${PASS} 
+	# configure ${GETTEXT} ${GETTEXT_SRC} ${PASS} ${TOOLS_OPT} &&
+	# build_and_install ${GETTEXT} ${PASS} 
 		
 	fi
 }
@@ -525,8 +562,8 @@ build_icu(){
 			tar -vxzf ${ICU_FILENAME}.tgz -C ${SRC_DIR} > ${LOG_DIR}/icu_untar.log  || exit 1
 			cd ${BUILD_DIR}
 		fi
-	configure ${ICU} ${ICU_SRC} ${PASS} ${TOOLS_OPT} &&
-	build_and_install ${ICU} ${PASS} 
+	# configure ${ICU} ${ICU_SRC} ${PASS} ${TOOLS_OPT} &&
+	# build_and_install ${ICU} ${PASS} 
 		
 	fi
 
@@ -539,8 +576,8 @@ build_openssl(){
 		if [ "$NEED_EXTRACTION" == "yes" ]; then
 			extract_source  ${OPENSSL} ${OPENSSL_VER} ${OPENSSL_TAR}
 		fi
-	configure ${OPENSSL} ${OPENSSL_SRC} ${PASS} ${TOOLS_OPT} &&
-	build_and_install ${OPENSSL} ${PASS} 
+	# configure ${OPENSSL} ${OPENSSL_SRC} ${PASS} ${TOOLS_OPT} &&
+	# build_and_install ${OPENSSL} ${PASS} 
 	fi
 }
 build_iconv(){
@@ -551,8 +588,8 @@ build_iconv(){
 		if [ "$NEED_EXTRACTION" == "yes" ]; then
 			extract_source  ${ICONV} ${ICONV_VER} ${ICONV_TAR}
 		fi
-	configure ${ICONV} ${ICONV_SRC} ${PASS} ${TOOLS_OPT} &&
-	build_and_install ${ICONV} ${PASS} 
+	# configure ${ICONV} ${ICONV_SRC} ${PASS} ${TOOLS_OPT} &&
+	# build_and_install ${ICONV} ${PASS} 
 		
 	fi
 
@@ -579,8 +616,8 @@ build_make(){
 		if [ "$NEED_EXTRACTION" == "yes" ]; then
 			extract_source  ${MAKE} ${MAKE_VER} ${MAKE_TAR}
 		fi
-	configure ${MAKE} ${MAKE_SRC} ${PASS} ${TOOLS_OPT} &&
-	build_and_install ${MAKE} ${PASS} 
+	# configure ${MAKE} ${MAKE_SRC} ${PASS} ${TOOLS_OPT} &&
+	# build_and_install ${MAKE} ${PASS} 
 		
 	fi
 }
@@ -592,13 +629,12 @@ build_libxml2(){
 		if [ "$NEED_EXTRACTION" == "yes" ]; then
 			extract_source  ${LIBXML2} ${LIBXML2_VER} ${LIBXML2_TAR}
 		fi
-	configure ${LIBXMX2} ${LIBXMX2_SRC} ${PASS} ${TOOLS_OPT} &&
-	build_and_install ${LIBXMX2} ${PASS} 
+	# configure ${LIBXMX2} ${LIBXMX2_SRC} ${PASS} ${TOOLS_OPT} &&
+	# build_and_install ${LIBXMX2} ${PASS} 
 		
 	fi
 }
-build_it(){ 
-	build_headers
+build_it(){
 	build_binutils
 	if [ ${COPY_LIBS_IN_GCC} == "yes" ]; then
 		copy_src_libs
@@ -609,23 +645,23 @@ build_it(){
 		build_isl
 		build_cloog
 	fi
-	create_symlinks
+	build_headers
+	create_symlinks 
 	gcc_process ${PASS}
 }
-create_build_directories
+ create_build_directories
 get_archives
-# extract_all
-# export PATH=${PREFIX}/bin:${PREFIX}/bin/32:$PATH
-# echo "PATH set to ${PATH}"
-# if [ "${PASS}" == "1" ]; then
-	# build_it
-	# suppress_dir
-	# create_dir
-	# PASS="2"
- # fi
+extract_all
+#export PATH=${PREFIX}/bin:${PREFIX}/bin/32:$PATH
+ # echo "PATH set to ${PATH}"
+if [ "${PASS}" == "1" ]; then
+	build_it
+	PASS="2"
+ fi
  #build_it
- # build_iconv
- # build_gettext
- # build_icu
- # build_openssl
- # build_libxml2
+ build_iconv
+ build_gettext
+ build_icu
+ build_openssl
+ build_libxml2
+ 
