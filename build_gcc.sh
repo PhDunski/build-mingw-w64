@@ -1,31 +1,13 @@
 #!/bin/bash
-# NOTA: Ce script fait tout pour vous !!!
-# il crée une arborescence proche de
-# <root>
-#	|-> le script se trouve ici (quel que soit le nom du dossier
-#	|-> archives : dossier dans lequel les archives sont récupérées
-#	|-> source   : dossier dans lequel les archives seront décompressées
-#
-# il récupère les différentes archives indispensables avant de les décompresser
-# puis il compile l'ensemble en deux passes
-#
-# vous devez disposer de msys-wget et de la possibilité d'utiliser SVN en ligne de commande
-#
-# Vous devez également veiller à ce que votre variable PATH connaisse le chemin d'accès pour les outils préinstallés
-#
-# vous devez veiller à utiliser un autre répertoire que celui dans lequel
-# se trouve votre installation actuelle de Gcc pour éviter les conflits
 
-# les dossiers de compilation : la plupart des outils supportent mal d'être 
-# compilés dans le même répertoire que leurs source. Nous devons donc prévoir
-#  un dossier de compilation pour chacun d'eux
 BASE_DIR=`pwd`
-BUILD_DIR="${BASE_DIR}/build"
-cd ${BUILD_DIR}
+
+BUILD="x86_64-w64-mingw32"
 NEED_SOURCES="yes"
 NEED_EXTRACTION="yes"
-NEED_CLEAR_SOURCE="no"
-NEED_CLEAR_PREFIX="no"
+NEED_CLEAN_SOURCE="no"
+NEED_CLEAN_PREFIX="no"
+NEED_CLEAN_TARBALL="no"
 NEED_FIRST_PASS="yes"
 WANT_GDB="yes"
 WANT_MAKE="yes"
@@ -59,6 +41,7 @@ ICU_FILENAME="icu4c${ICU_VER_STRING}-src"
 GCC_FLAVOUR="release"
 BINUTILS_FLAVOUR="release"
 
+BUILD_DIR="${BASE_DIR}/build"
 LOG_DIR="${BASE_DIR}/logs"
 SRC_DIR="${BASE_DIR}/source/"
 TAR_DIR="${BASE_DIR}/archives"
@@ -79,9 +62,10 @@ else
 fi
 BIT_32="on"
 BIT_64="on"
+echo ${BUILD}
 if [ "$BUILD" == "x86-w64-mingw32" ]; then
 	BIT_64="off"
-elif [ "$BUILD" neq "x86_64-w64-mingw32" ]; then
+elif [ "$BUILD" != "x86_64-w64-mingw32" ]; then
 	echo "what build do you want?"
 	exit 1
 fi
@@ -175,7 +159,6 @@ GCC_SRC="${SRC_DIR}/${GCC}${GCC_VER}"
 GETTEXT_SRC="${SRC_DIR}/${GETTEXT}-${GETTEXT_VER}"
 ICU_SRC="${SRC_DIR}/${ICU}/source"
 DEPS_PREFIX="${PREFIX}/deps"
-BUILD="x86_64-w64-mingw32"
 MINGW_PREFIX="${PREFIX}/${BUILD}"
 PREFIX_OPT="--prefix=${PREFIX}"
 if [ "$USE_SYSROOT" == yes ]; then
@@ -227,7 +210,7 @@ suppress_logs(){
     rm -rf *.log
 }
 erase_prefix_files(){
-	if [ "$NEED_CLEAR_PREFIX" == "yes" ]; then
+	if [ "$NEED_CLEAN_PREFIX" == "yes" ]; then
 		echo "removing all file in ${PREFIX}"
 		rm -rf ${PREFIX}/*
 	fi
@@ -246,9 +229,9 @@ copy_libdir(){
 		rm -rf ${PREFIX}/${BUILD}/lib32 
 	fi
 	if [ -d "${PREFIX}/${BUILD}/lib" ]; then
-		if [ "$BUILD" == "x86_64-w64-mingw32"]
+		if [ "$BUILD" == "x86_64-w64-mingw32" ]; then
 			cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib64
-		elif [ "$BUILD" == "x86-w64-mingw32"]
+		elif [ "$BUILD" == "x86-w64-mingw32" ]; then
 			cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib32
 		fi
 	fi
@@ -256,7 +239,7 @@ copy_libdir(){
 create_build_directories(){
     for dir in ${ALL_BUILD}; do
 		if [ ! -d "${BUILD_DIR}/${dir}" ]; then
-			mkdir -p ${dir}
+			mkdir -p ${BUILD_DIR}/${dir}
 		else
 			rm -rf ${BUILD_DIR}/${dir}/*
 		fi
@@ -267,10 +250,13 @@ create_build_directories(){
 	if [ ! -d "${SRC_DIR}" ]; then
 		mkdir -p ${SRC_DIR}
 	fi
+	if [ ! -d "${LOG_DIR}" ]; then
+		mkdir -p ${LOG_DIR}
+	fi
 	suppress_logs
 }
 suppress_sources(){
-	if [ "${NEED_CLEAR_SOURCE}" == "yes" ]; then
+	if [ "${NEED_CLEAN_SOURCE}" == "yes" ]; then
 		echo "suppressing all source directories"
 		cd ${SRC_DIR}
 		rm -rf *
@@ -312,22 +298,22 @@ extract_source(){
 	ARGNUM=${#ARGLIST[@]}
 	FILE=""
 	EXTRACT=""
-	if [ "${GZ}" == "${ARGLIST[${i}-1]}" ] ||
-		   [ "${TGZ}" == "${ARGLIST[${i}-1]}"]; then
-			EXTRACT="-vxzf"
-		elif[ "${BZ}" == "$3" ]; then
-			EXTRACT="-vxjf"
-		else 
-			echo "what's that for an archive ?"
-			exit 1
-		fi
-		for ((i = 0; i<$ARGNUM;++i)); do
-			FILE="${FILE}${ARGLIST[${i}]}"
-		done
-	fi
-	echo "extracting source from ${FILE}"
-	tar ${EXTRACT} ${FILE} -C ${SRC_DIR} > ${LOG_DIR}/${1}_untar.log  || exit 1
-	cd ${BUILD_DIR}
+	echo ${ARGLIST[${ARGNUM}-1]}
+	# if [ "${GZ}" == "${ARGLIST[${ARGNUM}-1]}" -o "${TGZ}" == "${ARGLIST[${ARGNUM}-1]}" ]; then
+			# EXTRACT="-vxzf"
+		# elif [ "${BZ}" == "$3" ]; then
+			# EXTRACT="-vxjf"
+		# else 
+			# echo "what's that for an archive ?"
+			# exit 1
+		# fi
+		# for ((i = 0; i<$ARGNUM;++i)); do
+			# FILE="${FILE}${ARGLIST[${i}]}"
+		# done
+	# fi
+	# echo "extracting source from ${FILE}"
+	# tar ${EXTRACT} ${FILE} -C ${SRC_DIR} > ${LOG_DIR}/${1}_untar.log  || exit 1
+	# cd ${BUILD_DIR}
 }
 
 extract_all(){
@@ -628,15 +614,15 @@ build_it(){
 }
 create_build_directories
 get_archives
-extract_all
-export PATH=${PREFIX}/bin:${PREFIX}/bin/32:$PATH
-echo "PATH set to ${PATH}"
-if [ "${PASS}" == "1" ]; then
-	build_it
-	suppress_dir
-	create_dir
-	PASS="2"
- fi
+# extract_all
+# export PATH=${PREFIX}/bin:${PREFIX}/bin/32:$PATH
+# echo "PATH set to ${PATH}"
+# if [ "${PASS}" == "1" ]; then
+	# build_it
+	# suppress_dir
+	# create_dir
+	# PASS="2"
+ # fi
  #build_it
  # build_iconv
  # build_gettext
