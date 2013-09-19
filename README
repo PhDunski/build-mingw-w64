@@ -30,3 +30,16 @@ L'arborescence créée par le script prendra la forme de
 	
 VARIABLES MODIFIABLES
 =====================
+Afin de rendre le script le plus souple possible, vous pouvez définir la valeur d'un certain nombre de
+variables.
+Merci de voir le fichier variables.txt pour plus d'information
+
+Utilisation
+===========
+Placez simplement ce fichier dans un dossier (de préférence vide) et 
+introduisez dans MSYS les commandes
+
+cd <dossier dans lequel se trouve le script>
+./build_gcc.sh
+
+Le reste se fait tout seul

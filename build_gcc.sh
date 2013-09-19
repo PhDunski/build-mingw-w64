@@ -1,667 +1,658 @@
 #!/bin/bash
 
 BASE_DIR=`pwd`
+BUILD_DIR=build
+LOG_DIR=logs
+TAR_DIR=archives
 
-BUILD="x86_64-w64-mingw32"
-NEED_SOURCES="yes"
-FORCE_DOWNLOAD="no"
-NEED_EXTRACTION="yes"
-NEED_CLEAN_SOURCE="no"
-NEED_CLEAN_PREFIX="no"
-NEED_CLEAN_TARBALL="no"
-NEED_FIRST_PASS="yes"
-WANT_GDB="yes"
-WANT_MAKE="yes"
-WANT_ICONV="yes"
-WANT_GETTEXT="yes"
-WANT_LIBXML2="yes"
-WANT_ICU="yes"
-WANT_OPENSSL="yes"
-USE_SYSROOT="yes"
-COPY_LIBS_IN_GCC="no"
-USE_SVN_TRUNK_CRT="yes"
-PREFIX="/mingw"
+BUILD=x86_64-w64-mingw32
+ENABLE_MULTILIB=yes
+ENABLE_SECURE_API=yes
+NEED_SOURCES=no
+PREFIX=/mingw
+BASE_SRC=source
+CLEAN_SRC=no
+CLEAN_TAR=no
+CLEAN_LOG=no
+CLEAN_BUILD=no
 
-GMP_VER=-5.1.2
-MPFR_VER=-3.1.2
-MPC_VER=-1.0.1
-ISL_VER=-0.11.1
-CLOOG_VER=-0.18.0
-MINGW_VER=v2.0.8
-BINUTILS_VER=-2.23.1
-GCC_VER=-4.8.1
-GDB_VER=-7.6.1
-MAKE_VER=-3.82
-LIBXML2_VER=-2.9.1
-ICONV_VER=-1.14
-GETTEXT_VER=-0.18.3.1
-OPENSSL_VER=-1.0.1e
-ICU_VER=51.2
-ICU_VER_STRING="-51_2"
-ICU_SRCNAME="${ICU_VER_STRING}-src"
-ICU_FILENAME="icu4c${ICU_VER_STRING}-src"
-GCC_FLAVOUR="release"
-BINUTILS_FLAVOUR="release"
-
-BUILD_DIR="${BASE_DIR}/build"
-LOG_DIR="${BASE_DIR}/logs"
+FORCE_RECONFIGURE=no
+FORCE_REBUILD=no
+FORCE_REINSTALL=no
+if [ "${FORCE_RECONFIGURE}" == "yes" ]; then
+	FORCE_REBUILD=yes
+fi
+if [ "${FORCE_REBUILD}" == "yes" ]; then
+	FORCE_REINSTALL=yes
+fi
 SRC_DIR="../../source"
-BASE_SRC="${BASE_DIR}/source"
-TAR_DIR="${BASE_DIR}/archives"
 
-LANGUAGES="c,c++,fortran,objc,obj-c++,lto"
+declare -a BINUTILS
+BINUTILS[0]=binutils
+BINUTILS[1]=-2.23.1
+BINUTILS[2]=.tar.bz2
+BINUTILS[3]=release
+BINUTILS[4]=ftp://gcc.gnu.org/pub/${BINUTILS[0]}/${BINUTILS[3]}s
+BINUTILS[5]=
+BINUTILS[6]=doit
+BINUTILS[7]=--build=${BUILD}
+BINUTILS[8]=--prefix=${PREFIX}
+BINUTILS[9]=--with-sysroot=${PREFIX}
+BINUTILS[10]=--enable-auto-import 
+BINUTILS[11]=--enable-shared 
+BINUTILS[12]=--enable-static
+BINUTILS[13]=--disable-nls
+DEPS_PREFIX=${PREFIX}/deps
+echo ${DEPS_PREFIX}
+declare -a GMP
+GMP[0]=gmp
+GMP[1]=-5.1.2
+GMP[2]=.tar.bz2
+GMP[3]=release
+GMP[4]=ftp://ftp.gmplib.org/pub/gmp
+GMP[5]=
+GMP[6]=doit
+GMP[7]=--build=${BUILD}
+GMP[8]=--prefix=${DEPS_PREFIX}
+GMP[10]=--disable-shared 
+GMP[11]=--enable-static
+declare -a MPFR
+MPFR[0]=mpfr
+MPFR[1]=-3.1.2
+MPFR[2]=.tar.bz2
+MPFR[3]=release
+MPFR[4]=http://www.mpfr.org/mpfr-current
+MPFR[5]=
+MPFR[6]=doit
+MPFR[7]=--build=${BUILD}
+MPFR[8]=--prefix=${DEPS_PREFIX}
+MPFR[10]=--disable-shared 
+MPFR[11]=--enable-static
+MPFR[12]=--with-gmp=${DEPS_PREFIX}
+declare -a MPC
+MPC[0]=mpc
+MPC[1]=-1.0.1
+MPC[2]=.tar.gz
+MPC[3]=release
+MPC[4]=http://www.multiprecision.org/mpc/download/
+MPC[5]=
+MPC[6]=doit
+MPC[7]=--build=${BUILD}
+MPC[8]=--prefix=${DEPS_PREFIX}
+MPC[10]=--disable-shared 
+MPC[11]=--enable-static
+MPC[12]=--with-gmp=${DEPS_PREFIX}
+MPC[13]=--with-mpfr=${DEPS_PREFIX}
+declare -a ISL
+ISL[0]=isl
+ISL[1]=-0.11.1
+ISL[2]=.tar.bz2
+ISL[3]=release
+ISL[4]=ftp://gcc.gnu.org/pub/gcc/infrastructure
+ISL[5]=
+ISL[6]=doit
+ISL[7]=--prefix=${DEPS_PREFIX}
+ISL[7]=--build=${BUILD}
+ISL[8]=--prefix=${DEPS_PREFIX}
+ISL[10]=--disable-shared 
+ISL[11]=--enable-static
+ISL[12]=--with-gmp-prefix=${DEPS_PREFIX}
+ISL[13]=--with-gmp=system
+declare -a CLOOG
+CLOOG[0]=cloog
+CLOOG[1]=-0.18.0
+CLOOG[2]=.tar.gz
+CLOOG[3]=release
+CLOOG[4]=ftp://gcc.gnu.org/pub/gcc/infrastructure/
+CLOOG[5]=
+CLOOG[6]=doit
+CLOOG[7]=--prefix=${DEPS_PREFIX}
+CLOOG[7]=--build=${BUILD}
+CLOOG[8]=--prefix=${DEPS_PREFIX}
+CLOOG[10]=--disable-shared 
+CLOOG[11]=--enable-static
+CLOOG[12]=--with-gmp=system
+CLOOG[13]=--with-gmp-prefix=${DEPS_PREFIX}
+CLOOG[11]=--with-isl=system
+CLOOG[12]=--with-isl-prefix=${DEPS_PREFIX}
+declare -a HEADERS
+HEADERS[0]=headers
+HEADERS[1]='v2.0.8'
+HEADERS[3]=release
+HEADERS[4]=
+HEADERS[5]=
+HEADERS[6]=doit
+HEADERS[7]=--prefix=${PREFIX}
+HEADERS[8]=--build=${BUILD}
+HEADERS[9]=--enable-secure-api
+HEADERS[10]=--enable-sdk=all
+declare -a CRT
+CRT[0]=crt
+CRT[1]='v2.0.8'
+CRT[3]=release
+CRT[4]=
+CRT[5]=
+CRT[6]=doit
+CRT[7]=--prefix=${PREFIX}/${BUILD}
+CRT[8]=--with-sysroot=${PREFIX}
+CRT[9]=--build=${BUILD}
+CRT[10]=--enable-lib32
+CRT[11]=--enable-lib64
+declare -a GCC
+GCC[0]=gcc
+GCC[1]=-4.8.1
+GCC[2]=.tar.bz2
+GCC[3]=release
+GCC[4]=ftp://gcc.gnu.org/pub/${GCC[0]}/${GCC[3]}s/${GCC[0]}${GCC[1]}
+GCC[5]=
+GCC[6]=doit
+GCC[7]=--build=${BUILD}
+GCC[8]=--prefix=${PREFIX}
+GCC[9]=--with-sysroot=${PREFIX}
+GCC[10]=--enable-languages=c,c++,fortran,objc,obj-c++,go
+GCC[11]=--enable-shared 
+GCC[12]=--enable-static
+GCC[13]=--disable-nls
+GCC[14]=--enable-libstdcxx-time
+GCC[15]=--enable-threads=posix
+GCC[16]=--enable-libstdcxx-threads
+GCC[17]=--enable-libgcomp
+GCC[18]=--enable-libssp
+GCC[19]=--enable-graphite
+GCC[20]=--enable-sjlj-exceptions
+GCC[21]=--enable-fully-dynamic-string
+GCC[22]=--enable-version-specific-runtime-libs
+GCC[23]=--disable-bootstrap
+GCC[24]=--disable-win32-registry
+GCC[25]=--with-gmp=${DEPS_PREFIX}
+GCC[26]=--with-mpfr=${DEPS_PREFIX}
+GCC[27]=--with-mpc=${DEPS_PREFIX}
+GCC[28]=--with-isl=${DEPS_PREFIX}
+GCC[29]=--with-cloog=${DEPS_PREFIX}
+GCC[30]=--with-cloog-backend=isl
+declare -a WPT32
+WPT32[0]=winpthread_32
+WPT32[1]=
+WPT32[2]=
+WPT32[3]=
+WPT32[4]=
+WPT32[5]=
+WPT32[6]=
+WPT32[7]=--build=${BUILD}
+WPT32[8]=--prefix=${PREFIX}/${WPT32[0]}
+WPT32[9]=--with-sysroot=${PREFIX}
+WPT32[10]=--disable-shared
+WPT32[11]=--enable-static
+WPT32[12]=CFLAGS=-m32
+declare -a WPT32_2
+WPT32_2="winpthread_32"
+WPT32_2[0]=winpthread_32
+WPT32_2[1]=
+WPT32_2[2]=
+WPT32_2[3]=
+WPT32_2[4]=
+WPT32_2[5]=
+WPT32_2[6]=
+WPT32_2[7]=--build=${BUILD}
+WPT32_2[8]=--prefix=${PREFIX}/${WPT32[0]}
+WPT32_2[9]=--with-sysroot=${PREFIX}
+WPT32_2[10]='RCFLAGS="-U_WIN64 -f pe_i686"'
+WPT32_2[11]='CFLAGS=-m32'
+WPT32_2[12]=--enable-shared
+WPT32_2[13]=--enable-static
 
-if [ "${NEED_SOURCE}" == "yes" ]; then
-    NEED_EXTRACTION="yes"
-fi
-if [ "$WANT_GETTEXT" == "yes" ]; then
-	WANT_ICONV="yes"
-fi
+declare -a WPT64
+WPT64[0]=winpthread_64
+WPT64[1]=
+WPT64[2]=
+WPT64[3]=
+WPT64[4]=
+WPT64[5]=
+WPT64[6]=
+WPT64[7]=--build=${BUILD}
+WPT64[8]=--prefix=${PREFIX}/${WPT64[0]}
+WPT64[9]=--with-sysroot=${PREFIX}
+WPT64[10]=--disable-shared
+WPT64[11]=--enable-static
+declare -a WPT64_2
+WPT64_2[0]=winpthread_32
+WPT64_2[1]=
+WPT64_2[2]=
+WPT64_2[3]=
+WPT64_2[4]=
+WPT64_2[5]=
+WPT64_2[6]=
+WPT64_2[7]=--build=${BUILD}
+WPT64_2[8]=--prefix=${PREFIX}/${WPT32[0]}
+WPT64_2[9]=--with-sysroot=${PREFIX}
+WPT64_2[10]=--disable-shared
+WPT64_2[11]=--enable-static
+
+declare -a MINGW_BASE
+MINGW_BASE[0]=mingw
+MINGW_BASE[1]='v2.0.8'
+MINGW_BASE[3]=release
+MINGW_BASE[5]=svn://svn.code.sf.net/p/mingw-w64/code/tags
+declare -a ERROR_TEST
+ERROR_TEST[0]=will-fail
+ERROR_TEST[1]=-0.0.1
+ERROR_TEST[2]=error
+ERROR_TEST[3]=release
+ERROR_TEST[4]=http://www.mpfr.org/mpfr-current
+#ERROR_TEST[5]=doit
+
+
 PASS="1"
-if [ "${NEED_FIRST_PASS}" == "yes" ];then
-	PASS="1"
-else
-	PASS="2"
-fi
-BIT_32="on"
-BIT_64="on"
-echo ${BUILD}
-if [ "$BUILD" == "x86-w64-mingw32" ]; then
-	BIT_64="off"
-elif [ "$BUILD" != "x86_64-w64-mingw32" ]; then
-	echo "what build do you want?"
-	exit 1
-fi
-GZ=".tar.gz"
-TGZ=".tgz"
-BZ=".tar.bz2"
-GMP="gmp"
-MPFR="mpfr"
-MPC="mpc"
-ISL="isl"
-CLOOG="cloog"
-HEADERS="headers"
-CRT="crt"
-WPT_COMMON="winpthreads"
-WPT_64="${WPT_COMMON}_64"
-WPT_32="${WPT_COMMON}_32"
+PREREQ='BINUTILS GMP MPFR MPC ISL CLOOG'
 
-BINUTILS="binutils"
-GCC="gcc"
-GDB="gdb"
-MAKE="make"
-LIBXML2="libxml2"
-ICONV="libiconv"
-GETTEXT="gettext"
-ICU="icu"
-OPENSSL="openssl"
-DEP_BUILD="${GMP} ${MPFR} ${MPC} ${ISL} ${CLOOG}"
-ALL_BUILD="${DEP_BUILD} ${HEADERS} ${CRT} ${BINUTILS} ${GCC} ${WPT_64} ${WPT_32}"
-if [ "${WANT_MAKE}" == "yes" ];then
-	ALL_BUILD="${ALL_BUILD} ${MAKE}"
-fi
-if [ "${WANT_GDB}" == "yes" ];then
-	ALL_BUILD="${ALL_BUILD} ${GDB}"
-fi
-if [ "${WANT_GETTEXT}" == "yes" ];then
-	ALL_BUILD="${ALL_BUILD} ${GETTEXT}"
-fi
-if [ "${WANT_ICU}" == "yes" ];then
-	ALL_BUILD="${ALL_BUILD} ${ICU}"
-fi
-if [ "${WANT_LIBXML2}" == "yes" ];then
-	ALL_BUILD="${ALL_BUILD} ${LIBXML2}"
-fi
-
-GZ=".tar.gz"
-TGZ=".tgz"
-BZ=".tar.bz2"
-GMP_TAR=${BZ}
-MPFR_TAR=${BZ}
-MPC_TAR=${GZ}
-ISL_TAR=${BZ}
-CLOOG_TAR=${GZ}
-MINGW_TAR=${GZ}
-BINUTILS_TAR=${BZ}
-GCC_TAR=${BZ}
-GDB_TAR=${BZ}
-MAKE_TAR=${BZ}
-LIBXML2_TAR=${GZ}
-ICONV_TAR=${GZ}
-GETTEXT_TAR=${GZ}
-ICU_TAR=${TGZ}
-OPENSSL_TAR=${GZ}
-SOURCEWAR_FTP="ftp://sourceware.org/pub"
-GMP_URL="ftp://ftp.gmplib.org/pub/gmp"
-MPFR_URL="http://www.mpfr.org/mpfr-current"
-MPC_URL="http://www.multiprecision.org/mpc/download"
-ISL_URL="${SOURCEWAR_FTP}/gcc/infrastructure"
-CLOOG_URL="${SOURCEWAR_FTP}/gcc/infrastructure"
-BINUTILS_URL="${SOURCEWAR_FTP}/binutils"
-GCC_URL="${SOURCEWAR_FTP}gcc"
-MINGW_SVN="svn://svn.code.sf.net/p/mingw-w64/code/tags"
-if [ "${USE_SVN_TRUNK_CRT}" == "yes" ]; then
-	MINGW_SVN="svn://svn.code.sf.net/p/mingw-w64/code/trunk"
-	MINGW_VER=""
-fi
-MAKE_URL="ftp://ftp.gnu.org/gnu/make"
-GDB_URL="ftp://ftp.gnu.org/gnu/gdb"
-LIBXML2_URL="ftp://xmlsoft.org/libxml2/"
-ICONV_URL="ftp://ftp.gnu.org/gnu/libiconv"
-GETTEXT_URL="http://ftp.gnu.org/pub/gnu/gettext"
-ICU_URL="http://download.icu-project.org/files/icu4c"
-OPENSSL_URL="http://www.openssl.org/source"
-GMP_SRC="${SRC_DIR}/${GMP}${GMP_VER}"
-MPFR_SRC="${SRC_DIR}/${MPFR}${MPFR_VER}"
-MPC_SRC="${SRC_DIR}/${MPC}${MPC_VER}"
-ISL_SRC="${SRC_DIR}/${ISL}${ISL_VER}"
-CLOOG_SRC="${SRC_DIR}/${CLOOG}${CLOOG_VER}"
-MINGW_BASE_SRC="${BASE_SRC}/mingw-w64"
-HEADERS_SRC="${MINGW_BASE_SRC}/mingw-w64-${HEADERS}"
-CRT_SRC="${MINGW_BASE_SRC}/mingw-w64-${CRT}"
-WINPTHREAD_SRC="${MINGW_BASE_SRC}/mingw-w64-libraries/winpthreads"
-BINUTILS_SRC="${SRC_DIR}/${BINUTILS}${BINUTILS_VER}"
-GCC_SRC="${SRC_DIR}/${GCC}${GCC_VER}"
-GETTEXT_SRC="${SRC_DIR}/${GETTEXT}-${GETTEXT_VER}"
-ICU_SRC="${SRC_DIR}/${ICU}/source"
-DEPS_PREFIX="${PREFIX}/deps"
-MINGW_PREFIX="${PREFIX}/${BUILD}"
-PREFIX_OPT="--prefix=${PREFIX}"
-if [ "$USE_SYSROOT" == yes ]; then
-	SYSROOT_OPT="--with-sysroot=${PREFIX}"
-else 
-	SYSROOT_OPT=
-fi
-DEPS_PREFIX_OPT="--prefix=${DEPS_PREFIX}"
-BUILD_OPT="--build=${BUILD}"
-COMMON_DEPS_OPT="${DEPS_PREFIX_OPT} ${BUILD_OPT} --disable-shared --enable-static"
-GMP_OPT="${COMMON_DEPS_OPT}"
-MPFR_OPT="${COMMON_DEPS_OPT} --with-gmp=${DEPS_PREFIX}"
-MPC_OPT="${COMMON_DEPS_OPT} --with-gmp=${DEPS_PREFIX} --with-mpfr=${DEPS_PREFIX}"
-ISL_OPT="${COMMON_DEPS_OPT} --with-gmp=system --with-gmp-prefix=${DEPS_PREFIX}"
-CLOOG_OPT="${COMMON_DEPS_OPT} --with-gmp=system --with-gmp-prefix=${DEPS_PREFIX} \
-		   --with-isl=system --with-isl-prefix=${DEPS_PREFIX}"
-MINGW_PREFIX_OPT="--prefix=${MINGW_PREFIX}"
-HEADERS_OPT="${MINGW_PREFIX_OPT} ${BUILD_OPT} --enable-sdk=all --enable-secure-api --enable-idl"
-CRT_OPT="${MINGW_PREFIX_OPT} ${BUILD_OPT} ${SYSROOT_OPT}"
-WPT_COMMON_FIRST="--disable-shared --enable-static"
-WPT_COMMON_SECOND="--enable-shared --enable-static"
-WPT_32_COMMON="CFLAGS=-m32 RCFLAGS='-U_WIN64 -f pe-i386'"
-WPT_64_FIRST_OPT="--prefix=${PREFIX}/wpt64 ${BUILD_OPT} {WPT_COMMON_FIRST}"
-WPT_64_FIRST_OPT="--prefix=${PREFIX}/wpt64 ${BUILD_OPT} {WPT_COMMON_SECOND}"
-WPT_32_FIRST_OPT="--prefix=${PREFIX}/wpt32 ${BUILD_OPT} {WPT_COMMON_FIRST} ${WPT_32_COMMON}"
-WPT_32_FIRST_OPT="--prefix=${PREFIX}/wpt32 ${BUILD_OPT} {WPT_COMMON_SECOND} ${WPT_32_COMMON}"
-BINUTILS_OPT="${PREFIX_OPT} ${SYSROOT_OPT} ${BUILD_OPT} --disable-nls --enable-auto-import"
-LANGUAGES_OPT="--enable-languages=${LANGUAGES}"
-BOOSTRAP_OFF="--disable-bootstrap"
-WERROR_OFF="--disable-werror"
-GCC_DEPS="--with-gmp=${DEPS_PREFIX} --with-mpfr=${DEPS_PREFIX} --with-mpc=${DEPS_PREFIX} \
-	--with-isl=${DEPS_PREFIX} --with-cloog=${DEPS_PREFIX} --with-cloog-backend=isl"
-if [ $"COPY_LIBS_IN_GCC" == "yes" ]; then
-	GCC_DEPS="--with-cloog-backend=isl"
-fi
-GCC_LIBS="--enable-libstdcxx-time --enable-libstdcxx-threads --enable-libgomp --enable-libatomic --enable-libssp"
-GCC_ENABLE_FIRST_OPT="--enable-shared --enable-static --enable-threads=posix"
-GCC_ENABLE_SECOND_OPT="--enable-lto --enable-graphite --enable-fully-dynamic-string"
-GCC_ENABLE_THIRD_OPT="--enable-version-specific-runtime-libs  --enable-sjlj-exceptions"
-GCC_DISABLE_OPT="--disable-win32-registry --disable-nls"
-GCC_OPT_BASE="${PREFIX_OPT} ${SYSROOT_OPT} ${BUILD_OPT} ${LANGUAGES_OPT} ${GCC_ENABLE_FIRST_OPT} \
- ${GCC_ENABLE_SECOND_OPT} ${GCC_ENABLE_THIRD_OPT} ${GCC_DISABLE_OPT} ${GCC_LIBS} ${GCC_DEPS}"
-GCC_OPT_FIRST="${GCC_OPT_BASE} ${BOOTSTRAP_OFF}"
-GCC_OPT_SECOND="${GCC_OPT_BASE} ${WERROR_OFF}"
-TOOLS_OPT=" ${PREFIX_OPT} ${SYSROOT_OPT} ${BUILD_OPT}"
-suppress_logs(){
-	cd ${LOG_DIR}
-	echo "removing old compilation log"
-    rm -rf *.log
-}
-erase_prefix_files(){
-	if [ "$NEED_CLEAN_PREFIX" == "yes" ]; then
-		echo "removing all file in ${PREFIX}"
-		rm -rf ${PREFIX}/*
-	fi
-}
-create_symlinks(){
-	if [ -d "${PREFIX}/mingw" &&  -n "${PREFIX}" ]; then
-		rm -rf ${PREFIX}/mingw
-	fi
-	ln -s ${PREFIX}/${BUILD} ${PREFIX}/mingw
-}
-copy_libdir(){
-	if [ -n "${BUILD}" && -n "${PREFIX}" ]; then
-		if [ -d "${PREFIX}/${BUILD}/lib64"  && "$BUILD" == "x86-w64-x86_64-w64-mingw32" ]; then
-			rm -rf ${PREFIX}/${BUILD}/lib64 
-		fi
-		if [ -d "${PREFIX}/${BUILD}/lib32" &&  "$BUILD" == "x86-w64-mingw32" ]; then
-			rm -rf ${PREFIX}/${BUILD}/lib32 
-		fi
-		if [ -d "${PREFIX}/${BUILD}/lib"   ]; then
-			if [ "$BUILD" == "x86_64-w64-mingw32" ]; then
-				cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib64
-			elif [ "$BUILD" == "x86-w64-mingw32" ]; then
-				cp -rf ${PREFIX}/${BUILD}/lib ${PREFIX}/${BUILD}/lib32
-			fi
-		fi
-	fi
-}
-create_build_directories(){
-    for dir in ${ALL_BUILD}; do
-		if [ ! -d "${BUILD_DIR}/${dir}" ] && [ -n "${BUILD_DIR}" ] && [ -n "${dir}"  ] ; then
-			mkdir -p ${BUILD_DIR}/${dir}
+echo "\$BASE_DIR    set to $BASE_DIR"
+echo "\$BUILD_DIR   set to $BUILD_DIR"
+echo "\$LOG_DIR     set to $LOG_DIR"
+echo "\$TAR_DIR     set to $TAR_DIR"
+echo "\$BASE_SRC    set to $BASE_SRC"
+echo "\$CLEAN_SRC   set to $CLEAN_SRC"
+echo "\$CLEAN_TAR   set to $CLEAN_TAR"
+echo "\$CLEAN_LOG   set to $CLEAN_LOG"
+echo "\$CLEAN_BUILD set to $CLEAN_BUILD"
+test_directories(){
+	#echo "create ${1} clean = ${2}"
+	if [ -d ${1} ] && [ -n "${1}" ]; then
+		echo -n "${1} exists "
+		if [ "x${2}" == "xyes" ]; then
+			echo "cleaning it "
+			cd ${1}
+			 rm -rf *
+			cd ..
 		else
-			rm -rf ${BUILD_DIR}/${dir}/*
+			echo ""
 		fi
-	done
-	if [ ! -d "${TAR_DIR}" ] && [ -n "${TAR_DIR}"  ]; then
-		mkdir -p ${TAR_DIR}
-	fi 
-	if [ ! -d "${BASE_SRC}" ]  && [ -n "${BASE_SRC}" ]; then
-		mkdir -p ${BASE_SRC}
-	fi
-	if [ ! -d "${LOG_DIR}" ] && [ -n "${LOG_DIR}" ]; then
-		mkdir -p ${LOG_DIR}
-	fi
-	if [ "${PASS}" == "1" ]; then
-		suppress_logs
-	fi
+	elif [ ! -d "${1}" ]; then
+		mkdir "${1}"
+	else
+		echo "which dir?"
+		exit 1
+	fi	
 }
-suppress_sources(){
-	if [ "${NEED_CLEAN_SOURCE}" == "yes" ]; then
-		echo "suppressing all source directories"
-		if [ -d "${BASE_SRC}" && -n "${BASE_SRC}" ]; then
-			cd ${BASE_SRC}
-			rm -rf *
-		fi
-		cd ${BUILD_DIR}
-	fi
-}
-wget_archive(){
-	WILL_GET="yes"
-	FILENAME=""
-	if [ "$#" == "4" ]; then
-		FILENAME="${2}${3}${4}"
-	elif  [ "$#" == "3" ]; then
-		FILENAME="${2}${3}"
-	elif  [ "$#" == "2" ]; then
-		FILENAME="${2}"
-	else 
-		echo "Do you realy want download the entiere directory?"
+extract_archive(){
+	cd $BASE_DIR
+	cd $TAR_DIR
+	eval EXT=\${$1[2]}
+	eval VERSION=\${$1[1]}
+	eval NAME=\${$1[0]}
+	FILENAME=${NAME}${VERSION}${EXT}
+	if [ -z $EXT ] || [ -z $VERSION ] || [ -z $NAME ]; then
+		echo cannot extract file from archive
 		exit 1
 	fi
-	if [ -e "${TAR_DIR}/${FILENAME}" ]; then
-		if [ "${FORCE_DOWNLOAD}" == "yes" ]; then
-			rm -f "${TAR_DIR}/${FILENAME}"
-		else
-			WILL_GET="no"
-			echo "skipping ${FILENAME}"
-		fi
+	OPT=
+	if [ "$EXT" == ".tar.gz" ] || [ "$EXT" == ".tgz" ]; then
+		OPT="-vxzf"
+	elif [ "$EXT" == ".tar.bz2" ]; then
+		OPT="-vxjf"
+	else
+		echo "unrecognized archive format"
+		exit 1
 	fi
-	if [ "${WILL_GET}" == "yes" ]; then
-		echo "getting ${FILENAME} from ${1}"
-		wget ${1}/${FILENAME} -P ${TAR_DIR} || exit 1
-	fi
-	
-}
-get_archives(){
-	if [ "$NEED_SOURCES" == "yes" ]; then
-		if [ ! -d "${TAR_DIR}" ]; then
-			mkdir -p ${TAR_DIR}
-		fi 
+	cd $BASE_DIR
+	cd ${LOG_DIR}
+	if [ -f ${NAME}${VERSION}_unarchive.log ]; then
+		echo "$FILENAME archives files allready extracted ... skipping"
+	else
+		cd $BASE_DIR
 		cd ${TAR_DIR}
-		wget_archive "${GMP_URL}${GMP_VER}" ${GMP} ${GMP_VER} ${GMP_TAR}  
-		wget_archive ${MPFR_URL} ${MPFR} ${MPFR_VER} ${MPFR_TAR}
-		wget_archive ${MPC_URL} ${MPC} ${MPC_VER} ${MPC_TAR}
-		wget_archive ${ISL_URL} ${ISL} ${ISL_VER} ${ISL_TAR}
-		wget_archive ${CLOOG_URL} ${CLOOG} ${CLOOG_VER} ${CLOOG_TAR}
-		wget_archive "${BINUTILS_URL}/${BINUTILS_FLAVOUR}s" ${BINUTILS} ${BINUTILS_VER} ${BINUTILS_TAR}
-		wget_archive "${GCC_URL}/${GCC_FLAVOUR}s/${GCC}${GCC_VER}" ${GCC} ${GCC_VER} ${GCC_TAR}
-		echo "getting mingw-w64 source from SVN"
-		if [ "${MINGW_BASE_SRC}" == "${BASE_SRC}" ]; then
-			echo " you should have to define MINGW_BASE_SRC"
+		echo "extracting with $OPT command line option"
+		tar $OPT $FILENAME -C ../${BASE_SRC} > ../${LOG_DIR}/${NAME}${VERSION}_unarchive.log
+	fi
+	cd $BASE_DIR
+}
+use_wget(){
+	cd $BASE_DIR
+	cd $TAR_DIR
+	eval FILENAME=\${$1[0]}\${$1[1]}\${$1[2]}
+	eval DATA=\${$1}
+
+	if [ -f ${FILENAME} ]; then
+	echo "${FILENAME} exist ... skipping"
+	else
+		echo "using wget to get ${FILENAME}"
+		wget ${2}/${FILENAME}
+	fi
+	extract_archive ${1}
+	cd $BASE_DIR
+}
+use_svn(){
+	cd $BASE_DIR
+	cd $BASE_SRC
+	eval eval NAME=\${$1[0]}
+	if [ -d $NAME ] && [ -n "$NAME" ]; then
+		echo "allready downloaded... skipping"
+	else
+		echo -n "checkout of ${NAME}"
+		eval svn checkout \${$1[5]}/\${$1[1]} \${$1[0]} >../${LOG_DIR}/${NAME}_svn_checkout.log 2>&1 || exit 1 
+		echo "done"
+	fi
+}
+get_source(){
+	eval USE_WGET=\${$1[4]}
+	if [ -n "${USE_WGET}" ]; then 
+		use_wget ${1} ${USE_WGET}
+	else
+		eval USE_SVN=\${$1[5]}
+		if [ -n "${USE_SVN}" ]; then 
+			use_svn ${1}
+		else
+			echo "how can i get sources ?"
 			exit 1
 		fi
-		if [ -d "${MINGW_BASE_SRC}" ] && [ "${FORCE_DOWNLOAD}" != "yes" ]; then
-			cd ${MINGW_BASE_SRC}
-			svn update >>${LOG_DIR}/mingw_update.log 2>&1 || exit 1
-			cd ${TAR_DIR}
-		else
-			if [ "${FORCE_DOWNLOAD}" == "yes" ]; then
-				rm -rf ${MINGW_BASE_SRC}
-			fi
-			if [ "${USE_SVN_TRUNK_CRT}" == "yes" ]; then
-				svn checkout ${MINGW_SVN} ${MINGW_BASE_SRC} > ${LOG_DIR}/mingw_checkout.log 2>&1  || exit 1
-			else
-				svn checkout ${MINGW_SVN}/${MINGW_VER} ${MINGW_BASE_SRC} > ${LOG_DIR}/mingw_checkout.log 2>&1  || exit 1
-			fi
+	fi
+}
+configure_elem(){
+	cd ${BASE_DIR}/${LOG_DIR}
+	TAB=($(eval echo $(echo \${$1[@]})))
+	NAME=${TAB[0]}
+	if [ "$FORCE_RECONFIGURE" == "yes" ]; then
+		if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+			rm ${NAME}_pass_${PASS}_configure.log
 		fi
-		cd ${BUILD_DIR}
 	fi
-}
-extract_source(){
-	cd  ${TAR_DIR}
-	VAR=`ls ${1}*`
-	VAR2=`echo ${VAR} | sed 's/.tar.gz//'`
-	EXT=""
-	if [ "${VAR2}" == "${1}" ]; then
-		EXT="-vxzf"
+	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		echo "${NAME} allready configured ... skipping"
+	elif [ -z "${NAME}" ]; then
+		echo "what package ?"
+		exit 1
 	else
-		EXT="-vxjf"
-	fi
-	echo "extracting ${VAR}"
-		tar ${EXT} ${VAR} -C ${BASE_SRC} > ${LOG_DIR}/${1}_untar.log  || exit 1
-}
-
-extract_all(){
-	if [ "${NEED_EXTRACTION}" == "yes" ]; then
-		cd ${TAR_DIR}
-		extract_source "${GMP}${GMP_VER}"
-		extract_source "${MPFR}${MPFR_VER}"
-		extract_source "${MPC}${MPC_VER}"
-		extract_source "${ISL}${ISL_VER}"
-		extract_source "${CLOOG}${CLOOG_VER}"
-		extract_source "${BINUTILS}${BINUTILS_VER}"
-		extract_source "${GCC}${GCC_VER}"
-		cd ${BUILD_DIR}
-	fi
-}
-copy_src_libs(){
-	if [ ! -d "${GCC_SRC}/${GMP}" ]; then
-		cp -rf ${GMP_SRC} ${GCC_SRC}/${GMP}
-	fi
-	if [ ! -d "${GCC_SRC}/${MPFR}" ]; then
-		cp -rf ${MPFR_SRC} ${GCC_SRC}/${MPFR}
-	fi
-	if [ ! -d "${GCC_SRC}/${MPC}" ]; then
-		cp -rf ${MPC_SRC} ${GCC_SRC}/${MPC}
-	fi
-	if [ ! -d "${GCC_SRC}/${ISL}" ]; then
-		cp -rf ${ISL_SRC} ${GCC_SRC}/${ISL}
-	fi
-	if [ ! -d "${GCC_SRC}/${CLOOG}" ]; then
-		cp -rf ${CLOOG_SRC} ${GCC_SRC}/${CLOOG}
-	fi
-}
-configure(){
-	
-	ARGLIST=("$@")
-	ARGNUM=${#ARGLIST[@]}
-	THISBUILD_DIR=${ARGLIST[0]}
-	SRC="${ARGLIST[1]}"
-	COMMAND="configure "
-	PASSNUMBER=${ARGLIST[2]}
-	echo "configuring ${THISBUILD_DIR} with sources from ${SRC} with-options"
-	for ((i = 3; i<$ARGNUM;++i)); do
-		echo "    ${ARGLIST[${i}]}"
-		COMMAND="${COMMAND} ${ARGLIST[${i}]}"
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		cd ${NAME}
+		
+	OPTIONS=
+	for ((i = 6; i<= ${#TAB[@]} ; ++i )) do
+		OPTIONS="${OPTIONS} ${TAB[$i]}"
+		echo "${TAB[$i]}"
 	done
-	cd ${BUILD_DIR}/${THISBUILD_DIR}
-	${SRC}/${COMMAND} >  ${LOG_DIR}/${THISBUILD_DIR}_pass_${PASSNUMBER}_configure.log 2>&1  || exit 1
-	echo "done"
-	echo
-	echo
-	cd ${BUILD_DIR}
+		eval THIS_SRC_DIR="${TAB[0]}${TAB[1]}"
+		echo -n "configuring ${NAME} ..."
+		../../${BASE_SRC}/${THIS_SRC_DIR}/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		echo "done"
+	fi
+	cd ${BASE_DIR}
 }
-build_and_install(){
-    cd ${BUILD_DIR}/${1}
-	echo "building ${1} pass ${2}"
-	make >  ${LOG_DIR}//${1}_pass_${2}_make.log 2>&1  || exit 1
-	echo "done"
-	echo
-	echo
-	echo "installing ${1} pass ${2}"
-	make install > ${LOG_DIR}//${1}_pass_${2}_install.log 2>&1  || exit 1
-	echo "done"
-	echo
-	echo
-	cd ${BUILD_DIR}
-}
-make_all_gcc(){
-	cd ${GCC}
-	echo "making all-gcc pass ${1}"
-	make all-gcc > ${LOG_DIR}/all-gcc_pas${1}_make.log 2>&1  || exit 1
-	echo "installing all-gcc pass ${1}"
-	make install-gcc > ${LOG_DIR}/all-gcc_pas${1}_install.log 2>&1  || exit 1
-	cd ${BUILD_DIR}
-}
-correct_libgcc_dir(){
-	if  -d "${PREFIX}/lib/gcc/${BUILD}/lib" ]; then
-		cp -f ${PREFIX}/lib/gcc/${BUILD}/lib/* ${PREFIX}/lib/gcc/${BUILD}/${GCC_VER}/lib
+make_elem(){
+	if [ -z "${1}" ]; then
+		echo "what would you want to build ?"
+		exit 1
 	fi
-	
-	if [ -d "${PREFIX}/lib/gcc/${BUILD}/lib32" ]; then
-		cp -f ${PREFIX}/lib/gcc/${BUILD}/lib32/* ${PREFIX}/lib/gcc/${BUILD}/${GCC_VER}/lib/32
+	cd "${BASE_DIR}/${LOG_DIR}"
+	if [ "$FORCE_REBUILD" == "yes" ]; then
+		if [ -f ${1}_pass_${PASS}_make.log ]; then
+		rm ${1}_pass_${PASS}_make.log
+		fi
 	fi
-}
-make_libgcc(){
-	cd ${GCC}
-	echo "making all-gcc pass ${1}"
-	make all-target-libgccgcc > ${BUILD_DIR}/libgcc_pas${1}_make.log 2>&1  || exit 1
-	echo "installing all-gcc pass ${1}"
-	make install-gcc > ${BUILD_DIR}/libgcc_pas${1}_install.log 2>&1  || exit 1
-	correct_libgcc_dir
-	cd ${BUILD_DIR}
-}
-build_winpthreads (){
-	OPT_64=""
-	OPT_32=""
-	rm -rf ${WPT_64_BUILD}/*
-	rm -rf ${WPT_32_BUILD}/*
-    if [ "${1}" = "1" ]; then
-		OPT_64="${WPT_64_FIRST_OPT}"
-		OPT_32="${WPT_32_FIRST_OPT}"
-	else
-		OPT_64="${WPT_64_SECOND_OPT}"
-		OPT_32="${WPT_32_SECOND_OPT}"
+	if [ -f ${1}_pass_${PASS}_make.log ]; then
+		echo "${1} allready build ... skipping"
+	else 
+		cd "${BASE_DIR}/${BUILD_DIR}/${1}"
+		echo -n "building ${1} ..."
+		make > ../../${LOG_DIR}/${1}_pass_${PASS}_make.log 2>&1 || exit 1
+		echo "done"
 	fi
-	if [ "${BIT_64}"= "on" ]; then 
-		configure ${WPT_64} ${WPT_SRC} ${1} ${OPT_64}
-		build_and_install ${WPT_64} ${1}
-	fi
-	if [ "${BIT_64}" == "on" ] ||
-	   [ "${BIT_32}" == "on" ]  ; then 
-		configure ${WPT_32} ${WPT_SRC}  ${1} ${OPT_32}
-		build_and_install ${WPT_32} ${1}
-		mkdir ${PREFIX}/bin/32
-	fi
-	if [ -d ${PREFIX}/wpt64/include ]; then
-		cp -f ${PREFIX}/wpt64/include/* ${PREFIX}/${BUILD}/include
-	fi
-	if [ -d ${PREFIX}/wpt64/lib ]; then
-		cp -f ${PREFIX}/wpt64/lib/* ${PREFIX}/${BUILD}/lib
-	fi
-	if [ -d ${PREFIX}/wpt32/lib ]; then
-		cp -f ${PREFIX}/wpt32/lib/* ${PREFIX}/${BUILD}/lib32
-	fi
-	if [ -d ${PREFIX}/wpt64/bin ]; then
-		cp ${PREFIX}/wpt64/bin/* ${PREFIX}/bin
-	fi
-	if [ -d ${PREFIX}/wpt64/bin ]; then
-		cp ${PREFIX}/wpt32/bin/* ${PREFIX}/bin/32
-	fi
-	if [ "${BIT_64}" == "off" ] &&
-		[ -d ${PREFIX}/wpt32/include ]; then
-		cp -f ${PREFIX}/wpt32/include/* ${PREFIX}/${BUILD}/include
-	fi
+	cd ${BASE_DIR}
 	
 }
-gcc_process(){
-	OPTIONS=""
-	 if [ "$1" == "1" ]; then
-		OPTIONS="${GCC_OPT_FIRST}"
-	else
-		OPTIONS="${GCC_OPT_SECOND}"
+install_elem(){
+
+	if [ -z "${1}" ]; then
+		echo "what would you want to install ?"
+		exit 1
 	fi
+	cd "${BASE_DIR}/${LOG_DIR}"
+	if [ "$FORCE_REINSTALL" == "yes" ]; then
+		if [ -f ${1}_pass_${PASS}_install.log ]; then
+		rm ${1}_pass_${PASS}_install.log
+		fi
+	fi
+	if [ -f ${1}_pass_${PASS}_install.log ]; then
+		echo "${1} allready installed ... skipping"
+	else
+		cd "${BASE_DIR}/${BUILD_DIR}/${1}"
+		echo -n "installing ${1} ..."
+		make install> ../../${LOG_DIR}/${1}_pass_${PASS}_install.log 2>&1 || exit 1
+		echo "done"
+	fi
+	cd ${BASE_DIR}
 	
-	configure ${GCC} ${GCC_SRC} ${1} ${OPTIONS}
-	make_all_gcc ${1}
-	configure ${CRT} ${CRT_SRC} ${1} ${CRT_OPT}
-	build_and_install ${CRT} ${1}
-	copy_libdir
-	if [ "$1" = "1" ]; then
-		build_winpthreads ${1}
-		copy_libdir
-		create_symlink
-		build_libgcc
-		build_winpthreads "2"
-	else
-		build_winpthreads "3"
+}
+build_elem(){
+	configure_elem ${1}
+	make_elem "${NAME}"
+	install_elem "${NAME}"
+}
+test_it(){
+	z=($(eval echo $(echo \${$1[@]})))
+	echo ${#z[@]} 
+	for ((i = 6; i<= ${#z[@]} ; ++i )) do
+		echo ${z[$i]}
+	done
+	echo "end of ${z[0]}"
+	echo "=============="
+}
+build_prereq(){
+	for elem in $PREREQ ; do
+		#test_it $elem
+		eval DOIT=\${$elem[6]}
+		eval NAME=\${$elem[0]}
+		if [ -n "${DOIT}" ] && [ "$DOIT" == "doit" ]; then
+			echo "building $NAME"
+			get_source $elem
+			build_elem $elem
+		else
+			echo "skipping $NAME"
+		fi
+	done
+}
+configure_headers(){
+	NAME=headers
+	cd ${BASE_DIR}/${LOG_DIR}
+		
+	if [ "$FORCE_RECONFIGURE" == "yes" ]; then
+		if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+			rm ${NAME}_pass_${PASS}_configure.log
+		fi
 	fi
-	copy_libdir
-	create_symlink
-	build_and_install ${GCC} ${1}
-	#copy_dlls
-}
-build_binutils(){
-	configure ${BINUTILS} "${BINUTILS_SRC}" ${PASS} ${BINUTILS_OPT} &&
-	build_and_install ${BINUTILS} ${PASS}
-}
-build_gmp(){
-	configure ${GMP} ${GMP_SRC} ${PASS} ${GMP_OPT} &&
-	build_and_install ${GMP} ${PASS}
-}
-build_mpfr(){
-	configure ${MPFR} ${MPFR_SRC} ${PASS} ${MPFR_OPT} &&
-	build_and_install ${MPFR} ${PASS}
-}
-build_mpc(){
-	configure ${MPC} ${MPC_SRC} ${PASS} ${MPC_OPT} &&
-	build_and_install ${MPC} ${PASS}
-}
-build_isl(){
-	configure ${ISL} ${ISL_SRC} ${PASS} ${ISL_OPT} &&
-	build_and_install ${ISL} ${PASS}
-}
-build_cloog(){
-	configure ${CLOOG} ${CLOOG_SRC} ${PASS} ${CLOOG_OPT} &&
-	build_and_install ${CLOOG} ${PASS}
+	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		echo "${NAME} allready configured ... skipping"
+	else
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		cd ${NAME}
+	OPTIONS=
+	for ((i = 7; i<= 10 ; ++i )) do
+		OPTIONS="${OPTIONS} ${HEADERS[$i]}"
+	done
+	
+		echo -n "configuring ${NAME} ..."
+		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-headers/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		echo "done"
+	fi
+	cd ${BASE_DIR}
 }
 build_headers(){
-	configure ${HEADERS} ${HEADERS_SRC} ${PASS} ${HEADERS_OPT} &&
-	build_and_install ${HEADERS} ${PASS} 
+	configure_headers
+	make_elem "headers"
+	install_elem "headers"
 }
-build_gettext(){
-	if [ "$WANT_GETTEXT" == "yes" ]; then
-		if [ "$NEED_SOURCES" == "yes" ]; then
-			wget_archive ${GETTEXT_URL} ${GETTEXT} ${GETTEXT_VER} ${GETTEXT_TAR}
-		fi
-		if [ "$NEED_EXTRACTION" == "yes" ]; then
-			extract_source  ${GETTEXT} ${GETTEXT_VER} ${GETTEXT_TAR}
-		fi
-	# configure ${GETTEXT} ${GETTEXT_SRC} ${PASS} ${TOOLS_OPT} &&
-	# build_and_install ${GETTEXT} ${PASS} 
-		
+create_symlinks(){
+	cd ${PREFIX}
+	if [ -d mingw ]; then
+		echo "removing mingw sub directory"
+		rm -rf mingw
 	fi
+	ln -s "${BUILD}" mingw
+	cd ${BASE_DIR}
 }
-build_icu(){
-	if [ "$WANT_ICU" == "yes" ]; then
-		if [ "$NEED_SOURCES" == "yes" ]; then
-			wget_archive "${ICU_URL}/${ICU_VER}" ${ICU_FILENAME} ${ICU_TAR} 
-		fi
-		if [ "$NEED_EXTRACTION" == "yes" ]; then
-			cd  ${TAR_DIR}
-			tar -vxzf ${ICU_FILENAME}.tgz -C ${SRC_DIR} > ${LOG_DIR}/icu_untar.log  || exit 1
-			cd ${BUILD_DIR}
-		fi
-	# configure ${ICU} ${ICU_SRC} ${PASS} ${TOOLS_OPT} &&
-	# build_and_install ${ICU} ${PASS} 
-		
-	fi
-
-}
-build_openssl(){
-	if [ "$WANT_OPENSSL" == "yes" ]; then
-		if [ "$NEED_SOURCES" == "yes" ]; then
-			wget_archive ${OPENSSL_URL} ${OPENSSL} ${OPENSSL_VER} ${OPENSSL_TAR}
-		fi
-		if [ "$NEED_EXTRACTION" == "yes" ]; then
-			extract_source  ${OPENSSL} ${OPENSSL_VER} ${OPENSSL_TAR}
-		fi
-	# configure ${OPENSSL} ${OPENSSL_SRC} ${PASS} ${TOOLS_OPT} &&
-	# build_and_install ${OPENSSL} ${PASS} 
-	fi
-}
-build_iconv(){
-	if [ "$WANT_ICONV" == "yes" ]; then
-		if [ "$NEED_SOURCES" == "yes" ]; then
-			wget_archive ${ICONV_URL} ${ICONV} ${ICONV_VER} ${ICONV_TAR}
-		fi
-		if [ "$NEED_EXTRACTION" == "yes" ]; then
-			extract_source  ${ICONV} ${ICONV_VER} ${ICONV_TAR}
-		fi
-	# configure ${ICONV} ${ICONV_SRC} ${PASS} ${TOOLS_OPT} &&
-	# build_and_install ${ICONV} ${PASS} 
-		
-	fi
-
-}
-build_gdb(){
-	if [ "$WANT_GDB" == "yes" ]; then
-		if [ "$NEED_SOURCES" == "yes" ]; then
-			wget_archive ${GDB_URL} ${GDB} ${GDB_VER} ${GDB_TAR}
-		fi
-		if [ "$NEED_EXTRACTION" == "yes" ]; then
-			extract_source  ${GDB} ${GDB_VER} ${GDB_TAR}
-		fi
-	# configure ${GDB} ${GDB_SRC} ${PASS} ${TOOLS_OPT} &&
-	# build_and_install ${GDB} ${PASS} 
-		
-	fi
-
-}
-build_make(){
-	if [ "$WANT_MAKE" == "yes" ]; then
-		if [ "$NEED_SOURCES" == "yes" ]; then
-			wget_archive ${MAKE_URL} ${MAKE} ${MAKE_VER} ${MAKE_TAR}
-		fi
-		if [ "$NEED_EXTRACTION" == "yes" ]; then
-			extract_source  ${MAKE} ${MAKE_VER} ${MAKE_TAR}
-		fi
-	# configure ${MAKE} ${MAKE_SRC} ${PASS} ${TOOLS_OPT} &&
-	# build_and_install ${MAKE} ${PASS} 
-		
-	fi
-}
-build_libxml2(){
-	if [ "$WANT_MAKE" == "yes" ]; then
-		if [ "$NEED_SOURCES" == "yes" ]; then
-			wget_archive ${LIBXML2_URL} ${LIBXML2} ${LIBXML2_VER} ${LIBXML2_TAR}
-		fi
-		if [ "$NEED_EXTRACTION" == "yes" ]; then
-			extract_source  ${LIBXML2} ${LIBXML2_VER} ${LIBXML2_TAR}
-		fi
-	# configure ${LIBXMX2} ${LIBXMX2_SRC} ${PASS} ${TOOLS_OPT} &&
-	# build_and_install ${LIBXMX2} ${PASS} 
-		
-	fi
-}
-build_it(){
-	build_binutils
-	if [ ${COPY_LIBS_IN_GCC} == "yes" ]; then
-		copy_src_libs
+make_all_gcc(){
+	cd ${BASE_DIR}/${LOG_DIR}
+	NAME=${GCC[0]}
+	if [ -f ${NAME}_pass_${PASS}_make_all_gcc.log ]; then
+		echo "${NAME} allready build ... skipping"
 	else
-		build_gmp
-		build_mpfr
-		build_mpc
-		build_isl
-		build_cloog
+		echo "building all-gcc"
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		cd ${NAME}
+		make all-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_all_gcc.log 2>&1 || exit 1
 	fi
-	build_headers
-	create_symlinks 
-	gcc_process ${PASS}
+	cd ${BASE_DIR}
 }
- create_build_directories
-get_archives
-extract_all
-#export PATH=${PREFIX}/bin:${PREFIX}/bin/32:$PATH
- # echo "PATH set to ${PATH}"
-if [ "${PASS}" == "1" ]; then
-	build_it
-	PASS="2"
- fi
- #build_it
- build_iconv
- build_gettext
- build_icu
- build_openssl
- build_libxml2
- 
+make_install_gcc(){
+	cd ${BASE_DIR}/${LOG_DIR}
+	NAME=${GCC[0]}
+	if [ -f ${NAME}_pass_${PASS}_make_gcc_install.log ]; then
+		echo "${NAME} allready installed ... skipping"
+	else
+		echo "installing all-gcc"
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		cd ${NAME}
+		make install-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_gcc_install.log 2>&1 || exit 1
+	fi
+	cd ${BASE_DIR}
+}
+make_winpthread_1(){ 
+	cd ${BASE_DIR}/${LOG_DIR}
+	NAME="winpthread64"
+	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		echo "${NAME} allready configured ... skipping"
+	else
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		cd ${NAME}
+	OPTIONS=
+	for ((i = 7; i<= 11 ; ++i )) do
+		OPTIONS="${OPTIONS} ${WPT64[$i]}"
+	done
+	
+		echo -n "configuring ${NAME} ..."
+		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		echo "done"
+		make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
+		make install  >../../${LOG_DIR}/${NAME}_pass_${PASS}_install.log 2>&1 || exit 1
+	fi
+	cd ${BASE_DIR}/${LOG_DIR}
+	NAME="winpthread32"
+	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		echo "${NAME} allready configured ... skipping"
+	else
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		cd ${NAME}
+	OPTIONS=
+	for ((i = 7; i<= 11 ; ++i )) do
+		OPTIONS="${OPTIONS} ${WPT32[$i]}"
+	done
+	
+		echo -n "configuring ${NAME} ..."
+		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		echo "done"
+		make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
+		make install  >../../${LOG_DIR}/${NAME}_pass_${PASS}_install.log 2>&1 || exit 1
+	fi
+cp -rf ${PREFIX}/${WPT64[0]}/include/* ${PREFIX}/${BUILD}/include
+cp -rf ${PREFIX}/${WPT64[0]}/lib/* ${PREFIX}/${BUILD}/lib
+cp -rf ${PREFIX}/${WPT32[0]}/lib/* ${PREFIX}/${BUILD}/lib32
+
+cd ${PREFIX}/${BUILD}
+if [ -d lib ] && [ -d lib64 ]; then
+	rm -rf lib64
+fi
+ln -s lib lib64
+create_symlinks
+cd ${BASE_DIR}
+}
+
+make_winpthread_2(){ 
+cd ${BASE_DIR}
+OLD_RECONF=${FORCE_RECONFIGURE}
+OLD_REBUILD=${FORCE_REBUILD}
+OLD_REINSTALL=${FORCE_REINSTALL}
+FORCE_RECONFIGURE=yes
+FORCE_REBUILD=yes
+FORCE_REINSTALL=yes
+configure_elem "WPT32_2"
+build_elem "WPT32_2"
+configure_elem "WPT64_2"
+build_elem "WPT64_2"
+cp -rf ${PREFIX}/${WPT64_2[0]}/include/* ${PREFIX}/${BUILD}/include
+cp -rf ${PREFIX}/${WPT64_2[0]}/lib/* ${PREFIX}/${BUILD}/lib
+cp -rf ${PREFIX}/${WPT32_2[0]}/lib/* ${PREFIX}/${BUILD}/lib32
+cp -rf ${PREFIX}/${WPT64_2[0]}/bin/* ${PREFIX}/bin
+mkdir ${PREFIX}/bin/32
+cp -rf ${PREFIX}/${WPT32_2[0]}/bin/* ${PREFIX}/bin/32
+
+cd ${PREFIX}{BUILD}
+if [ -d lib ] && [ -d lib64 ]; then
+	rm -rf lib64
+fi
+ln -s lib lib64
+create_symlinks
+
+FORCE_RECONFIGURE=${OLD_RECONF}
+FORCE_REBUILD=${OLD_REBUILD}
+FORCE_REINSTALL=${OLD_REINSTALL}
+
+cd ${BASE_DIR}
+}
+make_all_target(){
+	cd ${BASE_DIR}/${LOG_DIR}
+	NAME=${GCC[0]}
+	if [ -f ${NAME}_pass_${PASS}_make_all_target_libgcc.log ]; then
+		echo "${NAME} allready build ... skipping"
+	else
+		echo "building all-gcc"
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		cd ${NAME}
+		make all-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_all_target_libgcc.log 2>&1 || exit 1
+	fi
+	cd ${BASE_DIR}
+}
+make_install_target(){
+	cd ${BASE_DIR}/${LOG_DIR}
+	NAME=${GCC[0]}
+	if [ -f ${NAME}_pass_${PASS}_make_install_target_libgcc.log ]; then
+		echo "${NAME} allready installed ... skipping"
+	else
+		echo "installing all-gcc"
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		cd ${NAME}
+		make install-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_install_target_libgcc.log 2>&1 || exit 1
+	fi
+	cd ${BASE_DIR}
+}
+correct_libdir(){
+    cd ${PREFIX}/lib/gcc/${BUILD}
+	if [ -d lib ]; then
+		cp -f lib/* ${GCC[1]}
+	fi
+	if [ -d lib32 ]; then
+		cp -f lib/* ${GCC[1]}/32
+	fi
+	cd ${BASE_DIR}
+}
+test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
+test_directories "${TAR_DIR}" "${CLEAN_TAR}"
+test_directories "${BASE_SRC}" "${CLEAN_SOURCE}"
+test_directories "${LOG_DIR}" "${CLEAN_LOG}"
+get_source MINGW_BASE
+build_prereq
+build_headers
+create_symlinks
+get_source "GCC"
+extract_archive "GCC"
+configure_elem "GCC"
+make_all_gcc
+make_install_gcc
+make_all_target
+make_winpthread_1
+make_all_target
+make_install_target 
+correct_libdir
+make_winpthread_2
+build_elem "GCC"
