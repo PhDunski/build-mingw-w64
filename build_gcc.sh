@@ -117,12 +117,12 @@ CLOOG[11]=--with-isl=system
 CLOOG[12]=--with-isl-prefix=${DEPS_PREFIX}
 declare -a HEADERS
 HEADERS[0]=headers
-HEADERS[1]='v2.0.8'
+HEADERS[1]=6299
 HEADERS[3]=release
 HEADERS[4]=
 HEADERS[5]=
 HEADERS[6]=doit
-HEADERS[7]=--prefix=${PREFIX}
+HEADERS[7]=--prefix=${PREFIX}/${BUILD}
 HEADERS[8]=--build=${BUILD}
 HEADERS[9]=--enable-secure-api
 HEADERS[10]=--enable-sdk=all
@@ -156,7 +156,7 @@ GCC[13]=--disable-nls
 GCC[14]=--enable-libstdcxx-time
 GCC[15]=--enable-threads=posix
 GCC[16]=--enable-libstdcxx-threads
-GCC[17]=--enable-libgcomp
+GCC[17]=--enable-libgomp
 GCC[18]=--enable-libssp
 GCC[19]=--enable-graphite
 GCC[20]=--enable-sjlj-exceptions
@@ -170,6 +170,12 @@ GCC[27]=--with-mpc=${DEPS_PREFIX}
 GCC[28]=--with-isl=${DEPS_PREFIX}
 GCC[29]=--with-cloog=${DEPS_PREFIX}
 GCC[30]=--with-cloog-backend=isl
+GCC[31]=--enable-libmudflap 
+GCC[32]=--enable-libatomic 
+GCC[33]=--enable-libitm 
+GCC[34]=--enable-libsanitizer 
+GCC[35]=--enable-libffi
+GCC[35]=--enable-libgo
 declare -a WPT32
 WPT32[0]=winpthread_32
 WPT32[1]=
@@ -185,8 +191,7 @@ WPT32[10]=--disable-shared
 WPT32[11]=--enable-static
 WPT32[12]=CFLAGS=-m32
 declare -a WPT32_2
-WPT32_2="winpthread_32"
-WPT32_2[0]=winpthread_32
+WPT32_2[0]=winpthread_32_2
 WPT32_2[1]=
 WPT32_2[2]=
 WPT32_2[3]=
@@ -196,7 +201,7 @@ WPT32_2[6]=
 WPT32_2[7]=--build=${BUILD}
 WPT32_2[8]=--prefix=${PREFIX}/${WPT32[0]}
 WPT32_2[9]=--with-sysroot=${PREFIX}
-WPT32_2[10]='RCFLAGS="-U_WIN64 -f pe_i686"'
+WPT32_2[10]=`RCFLAGS='-U_WIN64 -F pe_i686'`
 WPT32_2[11]='CFLAGS=-m32'
 WPT32_2[12]=--enable-shared
 WPT32_2[13]=--enable-static
@@ -215,7 +220,7 @@ WPT64[9]=--with-sysroot=${PREFIX}
 WPT64[10]=--disable-shared
 WPT64[11]=--enable-static
 declare -a WPT64_2
-WPT64_2[0]=winpthread_32
+WPT64_2[0]=winpthread_64_2
 WPT64_2[1]=
 WPT64_2[2]=
 WPT64_2[3]=
@@ -230,9 +235,9 @@ WPT64_2[11]=--enable-static
 
 declare -a MINGW_BASE
 MINGW_BASE[0]=mingw
-MINGW_BASE[1]='v2.0.8'
+MINGW_BASE[1]=6299
 MINGW_BASE[3]=release
-MINGW_BASE[5]=svn://svn.code.sf.net/p/mingw-w64/code/tags
+MINGW_BASE[5]=svn://svn.code.sf.net/p/mingw-w64/code/trunk
 declare -a ERROR_TEST
 ERROR_TEST[0]=will-fail
 ERROR_TEST[1]=-0.0.1
@@ -245,138 +250,138 @@ ERROR_TEST[4]=http://www.mpfr.org/mpfr-current
 PASS="1"
 PREREQ='BINUTILS GMP MPFR MPC ISL CLOOG'
 
-echo "\$BASE_DIR    set to $BASE_DIR"
-echo "\$BUILD_DIR   set to $BUILD_DIR"
-echo "\$LOG_DIR     set to $LOG_DIR"
-echo "\$TAR_DIR     set to $TAR_DIR"
-echo "\$BASE_SRC    set to $BASE_SRC"
-echo "\$CLEAN_SRC   set to $CLEAN_SRC"
-echo "\$CLEAN_TAR   set to $CLEAN_TAR"
-echo "\$CLEAN_LOG   set to $CLEAN_LOG"
-echo "\$CLEAN_BUILD set to $CLEAN_BUILD"
-test_directories(){
-	#echo "create ${1} clean = ${2}"
-	if [ -d ${1} ] && [ -n "${1}" ]; then
-		echo -n "${1} exists "
-		if [ "x${2}" == "xyes" ]; then
-			echo "cleaning it "
-			cd ${1}
-			 rm -rf *
-			cd ..
-		else
-			echo ""
-		fi
-	elif [ ! -d "${1}" ]; then
-		mkdir "${1}"
-	else
-		echo "which dir?"
-		exit 1
-	fi	
-}
-extract_archive(){
-	cd $BASE_DIR
-	cd $TAR_DIR
-	eval EXT=\${$1[2]}
-	eval VERSION=\${$1[1]}
-	eval NAME=\${$1[0]}
-	FILENAME=${NAME}${VERSION}${EXT}
-	if [ -z $EXT ] || [ -z $VERSION ] || [ -z $NAME ]; then
-		echo cannot extract file from archive
-		exit 1
-	fi
-	OPT=
-	if [ "$EXT" == ".tar.gz" ] || [ "$EXT" == ".tgz" ]; then
-		OPT="-vxzf"
-	elif [ "$EXT" == ".tar.bz2" ]; then
-		OPT="-vxjf"
-	else
-		echo "unrecognized archive format"
-		exit 1
-	fi
-	cd $BASE_DIR
-	cd ${LOG_DIR}
-	if [ -f ${NAME}${VERSION}_unarchive.log ]; then
-		echo "$FILENAME archives files allready extracted ... skipping"
-	else
-		cd $BASE_DIR
-		cd ${TAR_DIR}
-		echo "extracting with $OPT command line option"
-		tar $OPT $FILENAME -C ../${BASE_SRC} > ../${LOG_DIR}/${NAME}${VERSION}_unarchive.log
-	fi
-	cd $BASE_DIR
-}
-use_wget(){
-	cd $BASE_DIR
-	cd $TAR_DIR
-	eval FILENAME=\${$1[0]}\${$1[1]}\${$1[2]}
-	eval DATA=\${$1}
+# echo "\$BASE_DIR    set to $BASE_DIR"
+# echo "\$BUILD_DIR   set to $BUILD_DIR"
+# echo "\$LOG_DIR     set to $LOG_DIR"
+# echo "\$TAR_DIR     set to $TAR_DIR"
+# echo "\$BASE_SRC    set to $BASE_SRC"
+# echo "\$CLEAN_SRC   set to $CLEAN_SRC"
+# echo "\$CLEAN_TAR   set to $CLEAN_TAR"
+# echo "\$CLEAN_LOG   set to $CLEAN_LOG"
+# echo "\$CLEAN_BUILD set to $CLEAN_BUILD"
+# test_directories(){
+	echo "create ${1} clean = ${2}"
+	# if [ -d ${1} ] && [ -n "${1}" ]; then
+		# echo -n "${1} exists "
+		# if [ "x${2}" == "xyes" ]; then
+			# echo "cleaning it "
+			# cd ${1}
+			 # rm -rf *
+			# cd ..
+		# else
+			# echo ""
+		# fi
+	# elif [ ! -d "${1}" ]; then
+		# mkdir "${1}"
+	# else
+		# echo "which dir?"
+		# exit 1
+	# fi	
+# }
+# extract_archive(){
+	# cd $BASE_DIR
+	# cd $TAR_DIR
+	# eval EXT=\${$1[2]}
+	# eval VERSION=\${$1[1]}
+	# eval NAME=\${$1[0]}
+	# FILENAME=${NAME}${VERSION}${EXT}
+	# if [ -z $EXT ] || [ -z $VERSION ] || [ -z $NAME ]; then
+		# echo cannot extract file from archive
+		# exit 1
+	# fi
+	# OPT=
+	# if [ "$EXT" == ".tar.gz" ] || [ "$EXT" == ".tgz" ]; then
+		# OPT="-vxzf"
+	# elif [ "$EXT" == ".tar.bz2" ]; then
+		# OPT="-vxjf"
+	# else
+		# echo "unrecognized archive format"
+		# exit 1
+	# fi
+	# cd $BASE_DIR
+	# cd ${LOG_DIR}
+	# if [ -f ${NAME}${VERSION}_unarchive.log ]; then
+		# echo "$FILENAME archives files allready extracted ... skipped"
+	# else
+		# cd $BASE_DIR
+		# cd ${TAR_DIR}
+		# echo "extracting with $OPT command line option"
+		# tar $OPT $FILENAME -C ../${BASE_SRC} > ../${LOG_DIR}/${NAME}${VERSION}_unarchive.log
+	# fi
+	# cd $BASE_DIR
+# }
+# use_wget(){
+	# cd $BASE_DIR
+	# cd $TAR_DIR
+	# eval FILENAME=\${$1[0]}\${$1[1]}\${$1[2]}
+	# eval DATA=\${$1}
 
-	if [ -f ${FILENAME} ]; then
-	echo "${FILENAME} exist ... skipping"
-	else
-		echo "using wget to get ${FILENAME}"
-		wget ${2}/${FILENAME}
-	fi
-	extract_archive ${1}
-	cd $BASE_DIR
-}
-use_svn(){
-	cd $BASE_DIR
-	cd $BASE_SRC
-	eval eval NAME=\${$1[0]}
-	if [ -d $NAME ] && [ -n "$NAME" ]; then
-		echo "allready downloaded... skipping"
-	else
-		echo -n "checkout of ${NAME}"
-		eval svn checkout \${$1[5]}/\${$1[1]} \${$1[0]} >../${LOG_DIR}/${NAME}_svn_checkout.log 2>&1 || exit 1 
-		echo "done"
-	fi
-}
-get_source(){
-	eval USE_WGET=\${$1[4]}
-	if [ -n "${USE_WGET}" ]; then 
-		use_wget ${1} ${USE_WGET}
-	else
-		eval USE_SVN=\${$1[5]}
-		if [ -n "${USE_SVN}" ]; then 
-			use_svn ${1}
-		else
-			echo "how can i get sources ?"
-			exit 1
-		fi
-	fi
-}
-configure_elem(){
-	cd ${BASE_DIR}/${LOG_DIR}
-	TAB=($(eval echo $(echo \${$1[@]})))
-	NAME=${TAB[0]}
-	if [ "$FORCE_RECONFIGURE" == "yes" ]; then
-		if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-			rm ${NAME}_pass_${PASS}_configure.log
-		fi
-	fi
-	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-		echo "${NAME} allready configured ... skipping"
-	elif [ -z "${NAME}" ]; then
-		echo "what package ?"
-		exit 1
-	else
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
-		cd ${NAME}
+	# if [ -f ${FILENAME} ]; then
+	# echo "${FILENAME} exist ... skipped"
+	# else
+		# echo "using wget to get ${FILENAME}"
+		# wget ${2}/${FILENAME}
+	# fi
+	# extract_archive ${1}
+	# cd $BASE_DIR
+# }
+# use_svn(){
+	# cd $BASE_DIR
+	# cd $BASE_SRC
+	# eval eval NAME=\${$1[0]}
+	# if [ -d $NAME ] && [ -n "$NAME" ]; then
+		# echo "allready downloaded... skipped"
+	# else
+		# echo -n "checkout of ${NAME}"
+		# eval svn checkout \${$1[5]}/@\${$1[1]} \${$1[0]} >../${LOG_DIR}/${NAME}_svn_checkout.log 2>&1 || exit 1 
+		# echo "done"
+	# fi
+# }
+# get_source(){
+	# eval USE_WGET=\${$1[4]}
+	# if [ -n "${USE_WGET}" ]; then 
+		# use_wget ${1} ${USE_WGET}
+	# else
+		# eval USE_SVN=\${$1[5]}
+		# if [ -n "${USE_SVN}" ]; then 
+			# use_svn ${1}
+		# else
+			# echo "how can i get sources ?"
+			# exit 1
+		# fi
+	# fi
+# }
+# configure_elem(){
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# TAB=($(eval echo $(echo \${$1[@]})))
+	# NAME=${TAB[0]}
+	# if [ "$FORCE_RECONFIGURE" == "yes" ]; then
+		# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+			# rm ${NAME}_pass_${PASS}_configure.log
+		# fi
+	# fi
+	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		# echo "${NAME} allready configured ... skipped"
+	# elif [ -z "${NAME}" ]; then
+		# echo "what package ?"
+		# exit 1
+	# else
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		# cd ${NAME}
 		
-	OPTIONS=
-	for ((i = 6; i<= ${#TAB[@]} ; ++i )) do
-		OPTIONS="${OPTIONS} ${TAB[$i]}"
-		echo "${TAB[$i]}"
-	done
-		eval THIS_SRC_DIR="${TAB[0]}${TAB[1]}"
-		echo -n "configuring ${NAME} ..."
-		../../${BASE_SRC}/${THIS_SRC_DIR}/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
-		echo "done"
-	fi
-	cd ${BASE_DIR}
-}
+	# OPTIONS=
+	# for ((i = 6; i<= ${#TAB[@]} ; ++i )) do
+		# OPTIONS="${OPTIONS} ${TAB[$i]}"
+		# echo "${TAB[$i]}"
+	# done
+		# eval THIS_SRC_DIR="${TAB[0]}${TAB[1]}"
+		# echo -n "configuring ${NAME} ..."
+		# ../../${BASE_SRC}/${THIS_SRC_DIR}/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		# echo "done"
+	# fi
+	# cd ${BASE_DIR}
+# }
 make_elem(){
 	if [ -z "${1}" ]; then
 		echo "what would you want to build ?"
@@ -389,7 +394,7 @@ make_elem(){
 		fi
 	fi
 	if [ -f ${1}_pass_${PASS}_make.log ]; then
-		echo "${1} allready build ... skipping"
+		echo "${1} allready build ... skipped"
 	else 
 		cd "${BASE_DIR}/${BUILD_DIR}/${1}"
 		echo -n "building ${1} ..."
@@ -412,7 +417,7 @@ install_elem(){
 		fi
 	fi
 	if [ -f ${1}_pass_${PASS}_install.log ]; then
-		echo "${1} allready installed ... skipping"
+		echo "${1} allready installed ... skipped"
 	else
 		cd "${BASE_DIR}/${BUILD_DIR}/${1}"
 		echo -n "installing ${1} ..."
@@ -422,65 +427,66 @@ install_elem(){
 	cd ${BASE_DIR}
 	
 }
-build_elem(){
-	configure_elem ${1}
-	make_elem "${NAME}"
-	install_elem "${NAME}"
-}
-test_it(){
-	z=($(eval echo $(echo \${$1[@]})))
-	echo ${#z[@]} 
-	for ((i = 6; i<= ${#z[@]} ; ++i )) do
-		echo ${z[$i]}
-	done
-	echo "end of ${z[0]}"
-	echo "=============="
-}
-build_prereq(){
-	for elem in $PREREQ ; do
-		#test_it $elem
-		eval DOIT=\${$elem[6]}
-		eval NAME=\${$elem[0]}
-		if [ -n "${DOIT}" ] && [ "$DOIT" == "doit" ]; then
-			echo "building $NAME"
-			get_source $elem
-			build_elem $elem
-		else
-			echo "skipping $NAME"
-		fi
-	done
-}
-configure_headers(){
-	NAME=headers
-	cd ${BASE_DIR}/${LOG_DIR}
+# build_elem(){
+	# configure_elem ${1}
+	# make_elem "${NAME}"
+	# install_elem "${NAME}"
+# }
+# test_it(){
+	# z=($(eval echo $(echo \${$1[@]})))
+	# echo ${#z[@]} 
+	# for ((i = 6; i<= ${#z[@]} ; ++i )) do
+		# echo ${z[$i]}
+	# done
+	# echo "end of ${z[0]}"
+	# echo "=============="
+# }
+# build_prereq(){
+	# for elem in $PREREQ ; do
+#		test_it $elem
+		# eval DOIT=\${$elem[6]}
+		# eval NAME=\${$elem[0]}
+		# if [ -n "${DOIT}" ] && [ "$DOIT" == "doit" ]; then
+			# echo "building $NAME"
+			# get_source $elem
+			# build_elem $elem
+		# else
+			# echo "skipped $NAME"
+		# fi
+	# done
+# }
+# configure_headers(){
+	# NAME=headers
+	# cd ${BASE_DIR}/${LOG_DIR}
 		
-	if [ "$FORCE_RECONFIGURE" == "yes" ]; then
-		if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-			rm ${NAME}_pass_${PASS}_configure.log
-		fi
-	fi
-	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-		echo "${NAME} allready configured ... skipping"
-	else
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
-		cd ${NAME}
-	OPTIONS=
-	for ((i = 7; i<= 10 ; ++i )) do
-		OPTIONS="${OPTIONS} ${HEADERS[$i]}"
-	done
+	# if [ "$FORCE_RECONFIGURE" == "yes" ]; then
+		# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+			# rm ${NAME}_pass_${PASS}_configure.log
+		# fi
+	# fi
+	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		# echo "${NAME} allready configured ... skipped"
+	# else
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		# cd ${NAME}
+	# OPTIONS=
+	# for ((i = 7; i<= 10 ; ++i )) do
+		# OPTIONS="${OPTIONS} ${HEADERS[$i]}"
+		# echo "${HEADERS[$i]}"
+	# done
 	
-		echo -n "configuring ${NAME} ..."
-		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-headers/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
-		echo "done"
-	fi
-	cd ${BASE_DIR}
-}
-build_headers(){
-	configure_headers
-	make_elem "headers"
-	install_elem "headers"
-}
+		# echo -n "configuring ${NAME} ..."
+		 # ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-headers/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		# echo "done"
+	# fi
+	# cd ${BASE_DIR}
+# }
+# build_headers(){
+	# configure_headers
+	# make_elem "headers"
+	# install_elem "headers"
+# }
 create_symlinks(){
 	cd ${PREFIX}
 	if [ -d mingw ]; then
@@ -490,169 +496,257 @@ create_symlinks(){
 	ln -s "${BUILD}" mingw
 	cd ${BASE_DIR}
 }
-make_all_gcc(){
-	cd ${BASE_DIR}/${LOG_DIR}
-	NAME=${GCC[0]}
-	if [ -f ${NAME}_pass_${PASS}_make_all_gcc.log ]; then
-		echo "${NAME} allready build ... skipping"
-	else
-		echo "building all-gcc"
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		cd ${NAME}
-		make all-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_all_gcc.log 2>&1 || exit 1
-	fi
-	cd ${BASE_DIR}
-}
-make_install_gcc(){
-	cd ${BASE_DIR}/${LOG_DIR}
-	NAME=${GCC[0]}
-	if [ -f ${NAME}_pass_${PASS}_make_gcc_install.log ]; then
-		echo "${NAME} allready installed ... skipping"
-	else
-		echo "installing all-gcc"
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		cd ${NAME}
-		make install-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_gcc_install.log 2>&1 || exit 1
-	fi
-	cd ${BASE_DIR}
-}
-make_winpthread_1(){ 
-	cd ${BASE_DIR}/${LOG_DIR}
-	NAME="winpthread64"
-	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-		echo "${NAME} allready configured ... skipping"
-	else
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
-		cd ${NAME}
-	OPTIONS=
-	for ((i = 7; i<= 11 ; ++i )) do
-		OPTIONS="${OPTIONS} ${WPT64[$i]}"
-	done
+# make_all_gcc(){
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${GCC[0]}
+	# if [ -f ${NAME}_pass_${PASS}_make_all_gcc.log ]; then
+		# echo "${NAME} allready build ... skipped"
+	# else
+		# echo "building all-gcc"
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# cd ${NAME}
+		# make all-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_all_gcc.log 2>&1 || exit 1
+	# fi
+	# cd ${BASE_DIR}
+# }
+# make_install_gcc(){
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${GCC[0]}
+	# if [ -f ${NAME}_pass_${PASS}_make_gcc_install.log ]; then
+		# echo "${NAME} allready installed ... skipped"
+	# else
+		# echo "installing all-gcc"
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# cd ${NAME}
+		# make install-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_gcc_install.log 2>&1 || exit 1
+	# fi
+	# cd ${BASE_DIR}
+# }
+# make_winpthread_1(){ 
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${WPT64[0]}
+	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		# echo "${NAME} allready configured ... skipped"
+	# else
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		# cd ${NAME}
+	# OPTIONS=
+	# for ((i = 7; i<= 12 ; ++i )) do
+		# OPTIONS="${OPTIONS} ${WPT64[$i]}"
+		# echo "${WPT64[$i]}"
+	# done
 	
-		echo -n "configuring ${NAME} ..."
-		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
-		echo "done"
-		make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
-		make install  >../../${LOG_DIR}/${NAME}_pass_${PASS}_install.log 2>&1 || exit 1
-	fi
-	cd ${BASE_DIR}/${LOG_DIR}
-	NAME="winpthread32"
-	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-		echo "${NAME} allready configured ... skipping"
-	else
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
-		cd ${NAME}
-	OPTIONS=
-	for ((i = 7; i<= 11 ; ++i )) do
-		OPTIONS="${OPTIONS} ${WPT32[$i]}"
-	done
+		# echo -n "configuring ${NAME} ..."
+		 # ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		# echo "done"
+		# make_elem "${NAME}"
+		# install_elem "${NAME}"
+	# fi
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${WPT32[0]}
+	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		# echo "${NAME} allready configured ... skipped"
+	# else
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		# cd ${NAME}
+	# OPTIONS=
+	# for ((i = 7; i<= 12 ; ++i )) do
+		# OPTIONS="${OPTIONS} ${WPT32[$i]}"
+		# echo "${WPT32[$i]}"
+	# done
 	
-		echo -n "configuring ${NAME} ..."
-		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
-		echo "done"
-		make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
-		make install  >../../${LOG_DIR}/${NAME}_pass_${PASS}_install.log 2>&1 || exit 1
-	fi
-cp -rf ${PREFIX}/${WPT64[0]}/include/* ${PREFIX}/${BUILD}/include
-cp -rf ${PREFIX}/${WPT64[0]}/lib/* ${PREFIX}/${BUILD}/lib
-cp -rf ${PREFIX}/${WPT32[0]}/lib/* ${PREFIX}/${BUILD}/lib32
+		# echo -n "configuring ${NAME} ..."
+		 # ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		# echo "done"
+		# echo -n "building ${NAAME} ..."
+		# make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
+		# echo "done"
+		# make_elem "${NAME}"
+		# install_elem "${NAME}"
+	# fi
+	# cp -rf ${PREFIX}/${WPT64[0]}/include/* ${PREFIX}/${BUILD}/include
+	# cp -rf ${PREFIX}/${WPT64[0]}/lib/* ${PREFIX}/${BUILD}/lib
+	# if [ ! -d ${PREFIX}/${BUILD}/lib32 ]; then
+		# mkdir ${PREFIX}/${BUILD}/lib32 
+	# fi
+	# cp -rf ${PREFIX}/${WPT32[0]}/lib/* ${PREFIX}/${BUILD}/lib32
 
-cd ${PREFIX}/${BUILD}
-if [ -d lib ] && [ -d lib64 ]; then
-	rm -rf lib64
-fi
-ln -s lib lib64
-create_symlinks
-cd ${BASE_DIR}
-}
+	# cd ${PREFIX}/${BUILD}
+	# if [ -d lib ] && [ -d lib64 ]; then
+		# rm -rf lib64
+	# fi
+	# ln -s lib lib64
+	# create_symlinks
+	# cd ${BASE_DIR}
+# }
 
 make_winpthread_2(){ 
 cd ${BASE_DIR}
-OLD_RECONF=${FORCE_RECONFIGURE}
-OLD_REBUILD=${FORCE_REBUILD}
-OLD_REINSTALL=${FORCE_REINSTALL}
-FORCE_RECONFIGURE=yes
-FORCE_REBUILD=yes
-FORCE_REINSTALL=yes
-configure_elem "WPT32_2"
-build_elem "WPT32_2"
-configure_elem "WPT64_2"
-build_elem "WPT64_2"
-cp -rf ${PREFIX}/${WPT64_2[0]}/include/* ${PREFIX}/${BUILD}/include
-cp -rf ${PREFIX}/${WPT64_2[0]}/lib/* ${PREFIX}/${BUILD}/lib
-cp -rf ${PREFIX}/${WPT32_2[0]}/lib/* ${PREFIX}/${BUILD}/lib32
-cp -rf ${PREFIX}/${WPT64_2[0]}/bin/* ${PREFIX}/bin
-mkdir ${PREFIX}/bin/32
-cp -rf ${PREFIX}/${WPT32_2[0]}/bin/* ${PREFIX}/bin/32
+# OLD_RECONF=${FORCE_RECONFIGURE}
+# OLD_REBUILD=${FORCE_REBUILD}
+# OLD_REINSTALL=${FORCE_REINSTALL}
+# FORCE_RECONFIGURE=yes
+# FORCE_REBUILD=yes
+# FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${WPT64_2}
+	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		# echo "${NAME} allready configured ... skipped"
+	# else
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		# cd ${NAME}
+	# OPTIONS=
+	# for ((i = 7; i<= 11 ; ++i )) do
+		# OPTIONS="${OPTIONS} ${WPT64_2[$i]}"
+		# echo "${WPT64_2[$i]}"
+	# done
+	
+		# echo -n "configuring ${NAME} ..."
+		 # ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		# echo "done"
+		# echo -n "building ${NAAME} ..."
+		# make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
+		# echo "done"
+		# make_elem "${NAME}"
+		# install_elem "${NAME}"
+	# fi
+	cd ${BASE_DIR}/${LOG_DIR}
+	NAME=${WPT32_2}
+	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		echo "${NAME} allready configured ... skipped"
+	else
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		cd ${NAME}
+	OPTIONS=
+	for ((i = 7; i<= 13 ; ++i )) do
+		OPTIONS="${OPTIONS} ${WPT32_2[$i]}"
+		echo "${WPT32_2[$i]}"
+	done
+	
+		echo -n "configuring ${NAME} ..."
+		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		echo "done"
+		make_elem "${NAME}"
+		install_elem "${NAME}"
+	fi
+	cp -rf ${PREFIX}/${WPT64_2[0]}/include/* ${PREFIX}/${BUILD}/include
+	cp -rf ${PREFIX}/${WPT64_2[0]}/lib/* ${PREFIX}/${BUILD}/lib
+	cp -rf ${PREFIX}/${WPT32_2[0]}/lib/* ${PREFIX}/${BUILD}/lib32
+	cp -rf ${PREFIX}/${WPT64_2[0]}/bin/* ${PREFIX}/bin
+	if [ ! -d ${PREFIX}/bin/32 ]; then
+		mkdir ${PREFIX}/bin/32
+	fi
+	cp -rf ${PREFIX}/${WPT32_2[0]}/bin/* ${PREFIX}/bin/32
 
-cd ${PREFIX}{BUILD}
-if [ -d lib ] && [ -d lib64 ]; then
-	rm -rf lib64
-fi
-ln -s lib lib64
-create_symlinks
+	cd ${PREFIX}/{BUILD}
+	if [ -d lib ] && [ -d lib64 ]; then
+		rm -rf lib64
+	fi
+	ln -s lib lib64
+	create_symlinks
 
-FORCE_RECONFIGURE=${OLD_RECONF}
-FORCE_REBUILD=${OLD_REBUILD}
-FORCE_REINSTALL=${OLD_REINSTALL}
+# FORCE_RECONFIGURE=${OLD_RECONF}
+# FORCE_REBUILD=${OLD_REBUILD}
+# FORCE_REINSTALL=${OLD_REINSTALL}
 
 cd ${BASE_DIR}
 }
-make_all_target(){
-	cd ${BASE_DIR}/${LOG_DIR}
-	NAME=${GCC[0]}
-	if [ -f ${NAME}_pass_${PASS}_make_all_target_libgcc.log ]; then
-		echo "${NAME} allready build ... skipping"
-	else
-		echo "building all-gcc"
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		cd ${NAME}
-		make all-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_all_target_libgcc.log 2>&1 || exit 1
-	fi
-	cd ${BASE_DIR}
-}
-make_install_target(){
-	cd ${BASE_DIR}/${LOG_DIR}
-	NAME=${GCC[0]}
-	if [ -f ${NAME}_pass_${PASS}_make_install_target_libgcc.log ]; then
-		echo "${NAME} allready installed ... skipping"
-	else
-		echo "installing all-gcc"
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		cd ${NAME}
-		make install-gcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_install_target_libgcc.log 2>&1 || exit 1
-	fi
-	cd ${BASE_DIR}
-}
+# build_crt(){
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${CRT[0]}
+	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		# echo "${NAME} allready configured ... skipped"
+	# else
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		# cd ${NAME}
+		# OPTIONS=
+		# for ((i = 7; i<= 11 ; ++i )) do
+			# OPTIONS="${OPTIONS} ${CRT[$i]}"
+		# echo "${CRT[$i]}"
+		# done
+		# echo -n "configuring ${NAME}..."
+		 # ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-${CRT[0]}/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		# echo done
+		# make_elem "${NAME}"
+		# install_elem "${NAME}"
+	# fi
+	# cd ${PREFIX}/${BUILD}
+	# if [ -d lib ] && [ -d lib64 ]; then
+		# rm -rf lib64
+	# fi
+	# ln -s lib lib64
+	# create_symlinks
+	# cd ${BASE_DIR}
+# }
+# make_all_target(){
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${GCC[0]}
+	# if [ -f ${NAME}_pass_${PASS}_make_all_target_libgcc.log ]; then
+		# echo "${NAME} allready build ... skipped"
+	# else
+		# echo "building all-target-libgcc"
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# cd ${NAME}
+		# make all-target-libgcc  >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_all_target_libgcc.log 2>&1 || exit 1
+	# fi
+	# cd ${BASE_DIR}
+# }
+# make_install_target(){
+	# cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${GCC[0]}
+	# if [ -f ${NAME}_pass_${PASS}_make_install_target_libgcc.log ]; then
+		# echo "${NAME} allready installed ... skipped"
+	# else
+		# echo "installing all-target-libgcc"
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# cd ${NAME}
+		# make install-target-libgcc >../../${LOG_DIR}/${NAME}_pass_${PASS}_make_install_target_libgcc.log 2>&1 || exit 1
+	# fi
+	# cd ${BASE_DIR}
+# }
 correct_libdir(){
     cd ${PREFIX}/lib/gcc/${BUILD}
 	if [ -d lib ]; then
+		echo "copying all libs from ${PREFIX}/lib/gcc/${BUILD}/lib to ${GCC[1]}"
 		cp -f lib/* ${GCC[1]}
 	fi
 	if [ -d lib32 ]; then
+	
+		echo "copying all libs from ${PREFIX}/lib/gcc/${BUILD}/lib to ${GCC[1]}/32"
 		cp -f lib/* ${GCC[1]}/32
 	fi
 	cd ${BASE_DIR}
 }
-test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
-test_directories "${TAR_DIR}" "${CLEAN_TAR}"
-test_directories "${BASE_SRC}" "${CLEAN_SOURCE}"
-test_directories "${LOG_DIR}" "${CLEAN_LOG}"
-get_source MINGW_BASE
-build_prereq
-build_headers
-create_symlinks
-get_source "GCC"
-extract_archive "GCC"
-configure_elem "GCC"
-make_all_gcc
-make_install_gcc
-make_all_target
-make_winpthread_1
-make_all_target
-make_install_target 
-correct_libdir
+# test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
+# test_directories "${TAR_DIR}" "${CLEAN_TAR}"
+# test_directories "${BASE_SRC}" "${CLEAN_SOURCE}"
+# test_directories "${LOG_DIR}" "${CLEAN_LOG}"
+# get_source MINGW_BASE
+# build_prereq
+# build_headers
+# create_symlinks
+# get_source "GCC"
+# extract_archive "GCC"
+# configure_elem "GCC"
+# make_all_gcc
+# make_install_gcc
+# make_winpthread_1
+# build_crt
+# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
+# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
+# this trick ensure that there will always one of those path which provides 32bits 
+# libraries v
+# if [ -d ${PREFIX}/mingw/lib ]; then
+	# rm -rf ${PREFIX}/mingw/lib
+	# ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+# fi
+# make_all_target
+# make_install_target 
+# correct_libdir
 make_winpthread_2
-build_elem "GCC"
+make_elem "GCC"
+install_elem "GCC"
