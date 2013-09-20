@@ -46,6 +46,34 @@ NOTA : Le script se base, pour les archives, sur la présence ou sur l'absence d
 	   Le fait de donner la valeur yes à la variable CLEAN_LOG aura donc pour effet de forcer le processus
 	   complet, depuis l'extraction de l'archive jusqu'à l'installation finale
 
-FORCE_RECONFIGURE=no
-FORCE_REBUILD=no
-FORCE_REINSTALL=no
+FORCE_RECONFIGURE	permet de définir l'ensemble des variables afin de forcer le processus de configuration
+					a pour résultat =no
+Les éléments installables
+========================
+
+Les variables utilisées pour les différents éléments à installer sont définie sous la forme de tableaux.
+Ces tableaux suivent toujours la forme générique suivante:
+tableau[0] : le nom de l'élément à installer (utilisé lors de la récupération des sources et pour 
+			 déterminer le dossier de compilation spécifique pour l'élément
+tableau[1] : la version de l'élément à compiler (utilisé lors de la récupération des sources 
+			 et lors de la configuration
+tableau[2] : le format de l'archive à télécharger (.tar.gz, tgz ou .tar.bz2) et à utiliser pour
+             l'extraction des sources lorsque l'on n'utilise pas SVN.
+tableau[3] : la "saveur" des sources recherchées : permet de choisir entre un snapshot et une version release
+tableau[4] : l'adresse de téléchargement de l'archive
+tableau[5] : l'adresse SVN pour récupérer les sources si l'on utilise SVN
+tableau[6] : GO / NO GO indiquant si l'élément doit être compilé ou non : vide s'il ne doit pas l'être, 
+             défini à 'doit' s'il doit l'être
+tableau[7] et suivants : options à passer au script de configuration (de préférence, une option par champs)
+
+NOTA : -Du fait même de la complexité du processus de compilation complet ( la crt doit être compilée avant la 
+		libgcc, mais après winpthreads qui ne peut être compilé qu'en version statique tant que la crt n'a pas
+		été compilée, mais qui peut être compilé en version dll une fois que c'est le cas), 
+		ou de l'organisation des sources (le checkout de mingw-w64 permet de récupére d'un seul coup, mais donc
+		dans un même dossier racine, aussi bien les fichiers d'en-tête que la crt et winpthreads), certains éléments
+		peuvent apparaitre en plusieurs exemplaires ou avec des valeurs non définies.
+		Il est PRIMORDIAL, quand une valeur n'est pas définie, de la laisser en l'état et de ne la supprimer 
+		EN AUCUN CAS, sous peine de faire échouer le processus.
+		
+	   -De même, vous ne devez EN AUCUN CAS envisager de modifier les valeurs qui font appel à des variable, 
+	    sous peine de faire échouer l'une ou l'autre étape du processus.
