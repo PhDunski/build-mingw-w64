@@ -1,0 +1,51 @@
+Le script qui se trouve ici tente d'être le plus souple et adaptable à vos besoins possible.
+
+Il utilise donc un certain nombre de variable dont vous pouvez modifier les valeurs:
+les noms de dossier
+===================
+Quatre variables permettent de définir le nom des dossiers utilisés par ce script, il s'agit de :
+BASE_DIR			correspond au dossier racine utilisé par le script 
+					( par défaut`pwd` , qui correspond au dossier dans lequel le script se trouve )
+BUILD_DIR			correspond au nom du dossier dans lequel les compilations sont faites 
+					( par défaut build)
+LOG_DIR				corresond au nom du dossier dans lequel les logs sont placés
+					( par défaut logs )
+TAR_DIR				correspond au dossier dans lequel sont placées les archives téléchargées
+					( par défaut : archives)
+BASE_SRC			correspond au dossier dans lequel seront placées les sources (par défaut : source)
+les options globales de compilation
+===================================
+BUILD				la cible finale pour laquelle les outils sont compilés. Les valeurs possibles sont
+						- x86_64-w64-mingw32 (version 64bits)(valeur par défaut)
+						- x86-w64-mingw32    (version 32bits !!!non testée!!)
+ENABLE_MULTILIB		active ou désactive le support du multilib . Les valeurs possibles sont
+						- yes (valeur par défaut)
+						- no (!!! non testé !!!)
+ENABLE_SECURE_API	active le support de l'API sécurisée par défaut. Les valeurs possibles sont
+						- yes (valeur par défaut)
+						- no 
+					NOTA : le fait de choisir la valeur no n'empêche absolument pas d'utiliser l'API
+						   sécurisée, mais vous oblige à définir le symbole MINGW_HAS_SECURE_API à 1
+						   dans les options de compilations de votre projet si vous souhaitez en profiter
+PREFIX=/mingw		Le dossier de destination général ( par défaut /mingw, à définir correctement dans
+					le fichier fstab qui se trouve dans le dossier msys/etc)
+CLEAN_SRC=no		force au nettoyage du dossier source. Placer cette variable a yes aura pour résultat
+					de supprimer l'ensemble contenu du dossier défini avec la variable BASE_SRC
+CLEAN_TAR=no		force au nettoyage du dossier archives. Placer cette variable a yes aura pour résultat
+					de supprimer l'ensemble contenu du dossier défini avec la variable TAR_DIR
+CLEAN_LOG=no		force au nettoyage du dossier log. Placer cette variable a yes aura pour résultat
+					de supprimer l'ensemble contenu du dossier défini avec la variable LOG_DIR
+CLEAN_BUILD=no      force au nettoyage du dossier log. Placer cette variable a yes aura pour résultat
+					de supprimer l'ensemble contenu du dossier défini avec la variable BUILD_DIR
+					
+NOTA : Le script se base, pour les archives, sur la présence ou sur l'absence de fichier dont le nom est
+	   défini pour déterminer s'il faut ou non le télécharger et sur la présence d'un fichier log pour
+	   tout ce qui a trait au "checkout" sur svn, à l'extraction d'archives, à la configuration, 
+	   à la compilation et à l'installation.
+
+	   Le fait de donner la valeur yes à la variable CLEAN_LOG aura donc pour effet de forcer le processus
+	   complet, depuis l'extraction de l'archive jusqu'à l'installation finale
+
+FORCE_RECONFIGURE=no
+FORCE_REBUILD=no
+FORCE_REINSTALL=no
