@@ -4,13 +4,12 @@ BASE_DIR=`pwd`
 BUILD_DIR=build
 LOG_DIR=logs
 TAR_DIR=archives
+BASE_SRC=source
 
 BUILD=x86_64-w64-mingw32
 ENABLE_MULTILIB=yes
 ENABLE_SECURE_API=yes
-NEED_SOURCES=no
 PREFIX=/mingw
-BASE_SRC=source
 CLEAN_SRC=no
 CLEAN_TAR=no
 CLEAN_LOG=no
@@ -201,10 +200,9 @@ WPT32_2[6]=
 WPT32_2[7]=--build=${BUILD}
 WPT32_2[8]=--prefix=${PREFIX}/${WPT32[0]}
 WPT32_2[9]=--with-sysroot=${PREFIX}
-WPT32_2[10]=`RCFLAGS='-U_WIN64 -F pe_i686'`
-WPT32_2[11]='CFLAGS=-m32'
-WPT32_2[12]=--enable-shared
-WPT32_2[13]=--enable-static
+WPT32_2[10]='CFLAGS=-m32'
+WPT32_2[11]=--enable-shared
+WPT32_2[12]=--enable-static
 
 declare -a WPT64
 WPT64[0]=winpthread_64
@@ -577,34 +575,34 @@ make_winpthread_1(){
 
 make_winpthread_2(){ 
 cd ${BASE_DIR}
-OLD_RECONF=${FORCE_RECONFIGURE}
-OLD_REBUILD=${FORCE_REBUILD}
-OLD_REINSTALL=${FORCE_REINSTALL}
-FORCE_RECONFIGURE=yes
-FORCE_REBUILD=yes
-FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
-	NAME=${WPT64_2}
-	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-		echo "${NAME} allready configured ... skipped"
-	else
-		cd "${BASE_DIR}/${BUILD_DIR}"
-		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
-		cd ${NAME}
-	OPTIONS=
-	for ((i = 7; i<= 11 ; ++i )) do
-		OPTIONS="${OPTIONS} ${WPT64_2[$i]}"
-		echo "${WPT64_2[$i]}"
-	done
+# OLD_RECONF=${FORCE_RECONFIGURE}
+# OLD_REBUILD=${FORCE_REBUILD}
+# OLD_REINSTALL=${FORCE_REINSTALL}
+# FORCE_RECONFIGURE=yes
+# FORCE_REBUILD=yes
+# FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
+	# NAME=${WPT64_2}
+	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		# echo "${NAME} allready configured ... skipped"
+	# else
+		# cd "${BASE_DIR}/${BUILD_DIR}"
+		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		# cd ${NAME}
+	# OPTIONS=
+	# for ((i = 7; i<= 11 ; ++i )) do
+		# OPTIONS="${OPTIONS} ${WPT64_2[$i]}"
+		# echo "${WPT64_2[$i]}"
+	# done
 	
-		echo -n "configuring ${NAME} ..."
-		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
-		echo "done"
-		echo -n "building ${NAAME} ..."
-		make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
-		echo "done"
-		make_elem "${NAME}"
-		install_elem "${NAME}"
-	fi
+		# echo -n "configuring ${NAME} ..."
+		 # ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		# echo "done"
+		# echo -n "building ${NAAME} ..."
+		# make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
+		# echo "done"
+		# make_elem "${NAME}"
+		# install_elem "${NAME}"
+	# fi
 	cd ${BASE_DIR}/${LOG_DIR}
 	NAME=${WPT32_2}
 	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
@@ -618,9 +616,9 @@ FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
 		OPTIONS="${OPTIONS} ${WPT32_2[$i]}"
 		echo "${WPT32_2[$i]}"
 	done
-	
+		echo "${OPTIONS}"
 		echo -n "configuring ${NAME} ..."
-		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS} RCFLAGS="-U_WIN64 -F pe-i386" >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
 		echo "done"
 		make_elem "${NAME}"
 		install_elem "${NAME}"
@@ -643,7 +641,7 @@ FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
 	if [ -d  ${PREFIX}/${WPT32_2[0]}/bin ]; then
 		cp -rf ${PREFIX}/${WPT32_2[0]}/bin/* ${PREFIX}/bin/32
 	fi
-	cd ${PREFIX}/{BUILD}
+	cd ${PREFIX}/${BUILD}
 	if [ -d lib ] && [ -d lib64 ]; then
 		rm -rf lib64
 	fi
@@ -725,32 +723,32 @@ correct_libdir(){
 	fi
 	cd ${BASE_DIR}
 }
-test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
-test_directories "${TAR_DIR}" "${CLEAN_TAR}"
-test_directories "${BASE_SRC}" "${CLEAN_SOURCE}"
-test_directories "${LOG_DIR}" "${CLEAN_LOG}"
-get_source MINGW_BASE
-build_prereq
-build_headers
-create_symlinks
-get_source "GCC"
-extract_archive "GCC"
-configure_elem "GCC"
-make_all_gcc
-make_install_gcc
-make_winpthread_1
-build_crt
-with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
-only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
-this trick ensure that there will always one of those path which provides 32bits 
-libraries v
-if [ -d ${PREFIX}/mingw/lib ]; then
-	rm -rf ${PREFIX}/mingw/lib
-	ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
-fi
-make_all_target
-make_install_target 
-correct_libdir
+# test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
+# test_directories "${TAR_DIR}" "${CLEAN_TAR}"
+# test_directories "${BASE_SRC}" "${CLEAN_SRC}"
+# test_directories "${LOG_DIR}" "${CLEAN_LOG}"
+# get_source MINGW_BASE
+# build_prereq
+# build_headers
+# create_symlinks
+# get_source "GCC"
+# extract_archive "GCC"
+# configure_elem "GCC"
+# make_all_gcc
+# make_install_gcc
+# make_winpthread_1
+# build_crt
+# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
+# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
+# this trick ensure that there will always one of those path which provides 32bits 
+# libraries v
+# if [ -d ${PREFIX}/mingw/lib ]; then
+	# rm -rf ${PREFIX}/mingw/lib
+	# ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+# fi
+# make_all_target
+# make_install_target 
+# correct_libdir
 make_winpthread_2
 make_elem "GCC"
 install_elem "GCC"
