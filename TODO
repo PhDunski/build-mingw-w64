@@ -1,6 +1,14 @@
 Liste des choses à faire:
 =========================
-- Rendre le script plus interactif afin d'éviter à l'utilisateur de devoir modifier les variables directement
-  dans le script
+- Rendre le script plus interactif afin d'éviter à l'utilisateur de devoir modifier les variables
+   directement dans le script
+   
 - Tester les options de compilation qui ne l'ont pas été
-- trouver un moyen d'introduire l'option RCFLAGS="-U_WIN64 -F pe-i386" dans les options de compilation de wpt32_2
+
+- trouver un moyen d'introduire l'option RCFLAGS="-U_WIN64 -F pe-i386" dans les options de 
+  compilation de wpt32_2
+  
+- Dans certaines occasions, le script supprime et recrée le dossier ${PREFIX}/mingw inutilement. 
+  A corriger
+
+- ajouter les différents outils externes (Gdb, make, Xml2, gettext)

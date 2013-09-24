@@ -7,9 +7,13 @@ Ce script prend l'ensemble du processus en charge, depuis la création des répe
 PREREQUIS
 ==========
 - une installation de MSYS utilisable
-- la possibilité d'invoquer wget (vous pouvez l'installer pour MSYS uniquement en invoquant mingw-get install msys-wget-bin)
+- la possibilité d'invoquer wget (vous pouvez l'installer pour MSYS uniquement en invoquant mingw-get 
+  install msys-wget-bin)
 - Une chaine de compilation en état de marche (de préférence MinGW ou MinGW-w64)
 - un dossier dans le parent duquel  MSYS a les accès en écriture
+- Environs 5 Gb d'espace disponible sur le disque dur 
+	+/- 1.5 Gb pour le dossier d'installation, 
+	+/- 3.5Gb pour le processus complet 
 
 ARBORESCENCE
 ============

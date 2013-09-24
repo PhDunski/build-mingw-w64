@@ -1,0 +1,8 @@
+Les problèmes connus
+========================
+Voici une liste de quelques problèmes connus qui peuvent survenir lors de la compilation
+
+I La compilation bloque lors du test des applicatif de gettext 
+==============================================================
+Déplacez les exécutable msg*.exe et ngettext.exe dans un dossier n'apparaissant pas dans la variable
+PATH

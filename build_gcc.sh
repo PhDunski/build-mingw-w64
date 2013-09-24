@@ -28,9 +28,10 @@ SRC_DIR="../../source"
 
 declare -a BINUTILS
 BINUTILS[0]=binutils
-BINUTILS[1]=-2.23.1
+BINUTILS[1]=-2.24.51
 BINUTILS[2]=.tar.bz2
-BINUTILS[3]=release
+# make your choice between 'release' and 'snapshot'
+BINUTILS[3]=snapshot
 BINUTILS[4]=ftp://gcc.gnu.org/pub/${BINUTILS[0]}/${BINUTILS[3]}s
 BINUTILS[5]=
 BINUTILS[6]=doit
@@ -42,7 +43,6 @@ BINUTILS[11]=--enable-shared
 BINUTILS[12]=--enable-static
 BINUTILS[13]=--disable-nls
 DEPS_PREFIX=${PREFIX}/deps
-echo ${DEPS_PREFIX}
 declare -a GMP
 GMP[0]=gmp
 GMP[1]=-5.1.2
@@ -139,16 +139,21 @@ CRT[10]=--enable-lib32
 CRT[11]=--enable-lib64
 declare -a GCC
 GCC[0]=gcc
-GCC[1]=-4.8.1
+GCC[1]=4.8.1
 GCC[2]=.tar.bz2
+# make your choice between 'release' and 'snapshot'
 GCC[3]=release
 GCC[4]=ftp://gcc.gnu.org/pub/${GCC[0]}/${GCC[3]}s/${GCC[0]}${GCC[1]}
+if [ "${GCC[3]}" == "snapshot" ]; then
+	VAR=`echo "${GCC[1]}" |sed 's/-//'`
+	GCC[4]=ftp://gcc.gnu.org/pub/${GCC[0]}/${GCC[3]}s/${VAR}
+fi
 GCC[5]=
-GCC[6]=doit
+GCC[6]=4.8.1
 GCC[7]=--build=${BUILD}
 GCC[8]=--prefix=${PREFIX}
 GCC[9]=--with-sysroot=${PREFIX}
-GCC[10]=--enable-languages=c,c++,fortran,objc,obj-c++,go
+GCC[10]=--enable-languages=c,c++,fortran,objc,obj-c++
 GCC[11]=--enable-shared 
 GCC[12]=--enable-static
 GCC[13]=--disable-nls
@@ -169,12 +174,6 @@ GCC[27]=--with-mpc=${DEPS_PREFIX}
 GCC[28]=--with-isl=${DEPS_PREFIX}
 GCC[29]=--with-cloog=${DEPS_PREFIX}
 GCC[30]=--with-cloog-backend=isl
-GCC[31]=--enable-libmudflap 
-GCC[32]=--enable-libatomic 
-GCC[33]=--enable-libitm 
-GCC[34]=--enable-libsanitizer 
-GCC[35]=--enable-libffi
-GCC[35]=--enable-libgo
 declare -a WPT32
 WPT32[0]=winpthread_32
 WPT32[1]=
@@ -198,7 +197,7 @@ WPT32_2[4]=
 WPT32_2[5]=
 WPT32_2[6]=
 WPT32_2[7]=--build=${BUILD}
-WPT32_2[8]=--prefix=${PREFIX}/${WPT32[0]}
+WPT32_2[8]=--prefix=${PREFIX}/${WPT32_2[0]}
 WPT32_2[9]=--with-sysroot=${PREFIX}
 WPT32_2[10]='CFLAGS=-m32'
 WPT32_2[11]=--enable-shared
@@ -226,9 +225,9 @@ WPT64_2[4]=
 WPT64_2[5]=
 WPT64_2[6]=
 WPT64_2[7]=--build=${BUILD}
-WPT64_2[8]=--prefix=${PREFIX}/${WPT32[0]}
+WPT64_2[8]=--prefix=${PREFIX}/${WPT64_2[0]}
 WPT64_2[9]=--with-sysroot=${PREFIX}
-WPT64_2[10]=--disable-shared
+WPT64_2[10]=--enable-shared
 WPT64_2[11]=--enable-static
 
 declare -a MINGW_BASE
@@ -434,7 +433,7 @@ build_prereq(){
 	for elem in $PREREQ ; do
 		eval DOIT=\${$elem[6]}
 		eval NAME=\${$elem[0]}
-		if [ -n "${DOIT}" ] && [ "$DOIT" == "doit" ]; then
+		if [ -n "${DOIT}" ] ; then
 			echo "building $NAME"
 			get_source $elem
 			build_elem $elem
@@ -575,34 +574,34 @@ make_winpthread_1(){
 
 make_winpthread_2(){ 
 cd ${BASE_DIR}
-# OLD_RECONF=${FORCE_RECONFIGURE}
-# OLD_REBUILD=${FORCE_REBUILD}
-# OLD_REINSTALL=${FORCE_REINSTALL}
-# FORCE_RECONFIGURE=yes
-# FORCE_REBUILD=yes
-# FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
-	# NAME=${WPT64_2}
-	# if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
-		# echo "${NAME} allready configured ... skipped"
-	# else
-		# cd "${BASE_DIR}/${BUILD_DIR}"
-		# test_directories "${NAME}" "${FORCE_RECONFIGURE}"
-		# cd ${NAME}
-	# OPTIONS=
-	# for ((i = 7; i<= 11 ; ++i )) do
-		# OPTIONS="${OPTIONS} ${WPT64_2[$i]}"
-		# echo "${WPT64_2[$i]}"
-	# done
+OLD_RECONF=${FORCE_RECONFIGURE}
+OLD_REBUILD=${FORCE_REBUILD}
+OLD_REINSTALL=${FORCE_REINSTALL}
+FORCE_RECONFIGURE=yes
+FORCE_REBUILD=yes
+FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
+	NAME=${WPT64_2[0]}
+	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
+		echo "${NAME} allready configured ... skipped"
+	else
+		cd "${BASE_DIR}/${BUILD_DIR}"
+		test_directories "${NAME}" "${FORCE_RECONFIGURE}"
+		cd ${NAME}
+	OPTIONS=
+	for ((i = 7; i<= 11 ; ++i )) do
+		OPTIONS="${OPTIONS} ${WPT64_2[$i]}"
+		echo "${WPT64_2[$i]}"
+	done
 	
-		# echo -n "configuring ${NAME} ..."
-		 # ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
-		# echo "done"
-		# echo -n "building ${NAAME} ..."
-		# make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
-		# echo "done"
-		# make_elem "${NAME}"
-		# install_elem "${NAME}"
-	# fi
+		echo -n "configuring ${NAME} ..."
+		 ../../${BASE_SRC}/${MINGW_BASE[0]}/mingw-w64-libraries/winpthreads/configure ${OPTIONS}  >../../${LOG_DIR}/${NAME}_pass_${PASS}_configure.log 2>&1 || exit 1
+		echo "done"
+		echo -n "building ${NAAME} ..."
+		make >../../${LOG_DIR}/${NAME}_pass_${PASS}_make.log 2>&1 || exit 1
+		echo "done"
+		make_elem "${NAME}"
+		install_elem "${NAME}"
+	fi
 	cd ${BASE_DIR}/${LOG_DIR}
 	NAME=${WPT32_2}
 	if [ -f ${NAME}_pass_${PASS}_configure.log ]; then
@@ -713,14 +712,79 @@ make_install_target(){
 correct_libdir(){
     cd ${PREFIX}/lib/gcc/${BUILD}
 	if [ -d lib ]; then
-		echo "copying all libs from ${PREFIX}/lib/gcc/${BUILD}/lib to ${GCC[1]}"
-		cp -f lib/* ${GCC[1]}
+		echo "copying all libs from ${PREFIX}/lib/gcc/${BUILD}/lib to ${GCC[6]}"
+		cp -f lib/* ${GCC[6]}
 	fi
 	if [ -d lib32 ]; then
 	
-		echo "copying all libs from ${PREFIX}/lib/gcc/${BUILD}/lib to ${GCC[1]}/32"
-		cp -f lib/* ${GCC[1]}/32
+		echo "copying all libs from ${PREFIX}/lib/gcc/${BUILD}/lib to ${GCC[6]}/32"
+		cp -f lib/* ${GCC[6]}/32
 	fi
+	cd ${BASE_DIR}
+}
+copy_dlls(){
+	NAME=${GCC[0]}
+	echo "ensuring that correct dlls are at the good place..."
+	cd "${BASE_DIR}/${BUILD_DIR}"
+	cd ${NAME}
+	for dir in libgcc libgfortran libgomp libobjc libquadmath libssp libstdc++v3; do
+		echo "searching in $dir"
+		if [ -d ${BUILD}/32/${dir}/32/shlib ]; then
+			echo "found ${BUILD}/32/${dir}/32/shlib"
+			cp ${BUILD}/32/${dir}/32/shlib/*.dll ${PREFIX}/bin/32
+		fi
+		if [ -d ${BUILD}/32/${dir}/.libs ]; then
+			echo "found ${BUILD}/32/${dir}/.libs"
+			cp ${BUILD}/32/${dir}/.libs/*.dll ${PREFIX}/bin/32
+		fi
+		if [ -d ${BUILD}/32/${dir}/src/.libs ]; then
+			echo "found ${BUILD}/32/${dir}/src/.libs"
+			cp ${BUILD}/32/${dir}/.libs/src/*.dll ${PREFIX}/bin/32
+		fi
+		if [ -d ${BUILD}+${dir}/shlib ]; then
+			echo "found ${BUILD}/${dir}/shlib"
+			cp ${BUILD}+${dir}/shlib/*.dll ${PREFIX}/bin
+		fi
+		if [ -d ${BUILD}/${dir}/.libs ]; then
+			echo "found ${BUILD}/${dir}/.libs"
+			cp ${BUILD}/${dir}/.libs/*.dll ${PREFIX}/bin
+		fi
+		if [ -d ${BUILD}/${dir}/src/.libs ]; then
+			echo "found ${BUILD}/${dir}/src/.libs"
+			cp ${BUILD}/${dir}/src/.libs/*.dll ${PREFIX}/bin
+		fi
+	done
+	echo "done"
+	cd ${BASE_DIR}
+}
+final_cleanup(){
+	echo "--- final cleanup --- "
+	echo  "cleaning up ${PREFIX} directory ..."
+	cd ${PREFIX}
+	echo `pwd`
+	for dir in mingw winpthread_32 winpthread_32_2 winpthread_64 winpthread_64_2; do
+		echo -n "removing ${dir} if exists..."
+		if [ -d ${dir} ]; then
+			rm -rf ${dir}
+		fi
+		echo "done"
+	done
+	echo "done"
+	cd ${BASE_DIR}
+}
+create_batch_file(){
+	cd ${PREFIX}
+	echo "creating batch for new environment variables"
+	if [ -f "mingw64env.cmd" ]; then
+		NOW=$(date +"%Y-%m-%d-%H-%M")
+		echo "oops batch file allready exists, baking it up as mingw64env.cmd_bak-${NOW}"
+		mv mingw64env.cmd mingw64env.cmd_bak-${NOW}
+	fi
+	echo "@title MinGW-w64 64-bit GCC build environment" > mingw64env.cmd
+	echo "@set MINGW_PATH=%CD%" >> mingw64env.cmd
+	echo "@set PATH=%MINGW_PATH%\bin;%MINGW_PATH%\bin\32;%PATH%;" >> mingw64env.cmd
+	echo "call cmd" >> mingw64env.cmd
+	echo "done"
 	cd ${BASE_DIR}
 }
 # test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
@@ -749,6 +813,10 @@ correct_libdir(){
 # make_all_target
 # make_install_target 
 # correct_libdir
-make_winpthread_2
-make_elem "GCC"
-install_elem "GCC"
+# make_winpthread_2
+# make_elem "GCC"
+# install_elem "GCC"
+copy_dlls
+final_cleanup
+create_batch_file
+correct_libdir
