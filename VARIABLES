@@ -37,6 +37,8 @@ CLEAN_LOG=no		force au nettoyage du dossier log. Placer cette variable a yes aur
 					de supprimer l'ensemble contenu du dossier défini avec la variable LOG_DIR
 CLEAN_BUILD=no      force au nettoyage du dossier log. Placer cette variable a yes aura pour résultat
 					de supprimer l'ensemble contenu du dossier défini avec la variable BUILD_DIR
+FIRST_PASS_ENABLED  indique s'il faut effectuer une première passe (valeur par défaut : yes)
+SECOND_PASS_ENABLED  indique s'il faut effectuer une seconde passe (valeur par défaut : no)
 					
 NOTA : Le script se base, pour les archives, sur la présence ou sur l'absence de fichier dont le nom est
 	   défini pour déterminer s'il faut ou non le télécharger et sur la présence d'un fichier log pour

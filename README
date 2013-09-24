@@ -9,6 +9,8 @@ PREREQUIS
 - une installation de MSYS utilisable
 - la possibilité d'invoquer wget (vous pouvez l'installer pour MSYS uniquement en invoquant mingw-get 
   install msys-wget-bin)
+- la possibilité d'invoquer la commande patch depuis msys (vous pouvez l'installer pour MSYS uniquement
+  en invoquant mingw-get install msys-patch-bin)
 - Une chaine de compilation en état de marche (de préférence MinGW ou MinGW-w64)
 - un dossier dans le parent duquel  MSYS a les accès en écriture
 - Environs 5 Gb d'espace disponible sur le disque dur 
