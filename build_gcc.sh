@@ -139,7 +139,7 @@ CRT[10]=--enable-lib32
 CRT[11]=--enable-lib64
 declare -a GCC
 GCC[0]=gcc
-GCC[1]=4.8.1
+GCC[1]=-4.8.1
 GCC[2]=.tar.bz2
 # make your choice between 'release' and 'snapshot'
 GCC[3]=release
@@ -787,35 +787,35 @@ create_batch_file(){
 	echo "done"
 	cd ${BASE_DIR}
 }
-# test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
-# test_directories "${TAR_DIR}" "${CLEAN_TAR}"
-# test_directories "${BASE_SRC}" "${CLEAN_SRC}"
-# test_directories "${LOG_DIR}" "${CLEAN_LOG}"
-# get_source MINGW_BASE
-# build_prereq
-# build_headers
-# create_symlinks
-# get_source "GCC"
-# extract_archive "GCC"
-# configure_elem "GCC"
-# make_all_gcc
-# make_install_gcc
-# make_winpthread_1
-# build_crt
-# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
-# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
-# this trick ensure that there will always one of those path which provides 32bits 
-# libraries v
-# if [ -d ${PREFIX}/mingw/lib ]; then
-	# rm -rf ${PREFIX}/mingw/lib
-	# ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
-# fi
-# make_all_target
-# make_install_target 
-# correct_libdir
-# make_winpthread_2
-# make_elem "GCC"
-# install_elem "GCC"
+test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
+test_directories "${TAR_DIR}" "${CLEAN_TAR}"
+test_directories "${BASE_SRC}" "${CLEAN_SRC}"
+test_directories "${LOG_DIR}" "${CLEAN_LOG}"
+get_source MINGW_BASE
+build_prereq
+build_headers
+create_symlinks
+get_source "GCC"
+extract_archive "GCC"
+configure_elem "GCC"
+make_all_gcc
+make_install_gcc
+make_winpthread_1
+build_crt
+with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
+only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
+this trick ensure that there will always one of those path which provides 32bits 
+libraries v
+if [ -d ${PREFIX}/mingw/lib ]; then
+	rm -rf ${PREFIX}/mingw/lib
+	ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+fi
+make_all_target
+make_install_target 
+correct_libdir
+make_winpthread_2
+make_elem "GCC"
+install_elem "GCC"
 copy_dlls
 final_cleanup
 create_batch_file
