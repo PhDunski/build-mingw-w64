@@ -5,7 +5,7 @@ BUILD_DIR=build
 LOG_DIR=logs
 TAR_DIR=archives
 BASE_SRC=source
-
+PATCHES_DIR=patches
 BUILD=x86_64-w64-mingw32
 ENABLE_MULTILIB=yes
 ENABLE_SECURE_API=yes
@@ -18,6 +18,15 @@ CLEAN_BUILD=no
 FORCE_RECONFIGURE=no
 FORCE_REBUILD=no
 FORCE_REINSTALL=no
+FIRST_PASS_ENABLED=yes
+SECOND_PASS_ENABLED=no
+
+PASS="1"
+if [ "$FIRST_PASS_ENABLED" == "yes" ]; then
+	PASS="1"
+else
+	PASS="2"
+fi
 if [ "${FORCE_RECONFIGURE}" == "yes" ]; then
 	FORCE_REBUILD=yes
 fi
@@ -244,7 +253,6 @@ ERROR_TEST[4]=http://www.mpfr.org/mpfr-current
 #ERROR_TEST[5]=doit
 
 
-PASS="1"
 PREREQ='BINUTILS GMP MPFR MPC ISL CLOOG'
 
 # echo "\$BASE_DIR    set to $BASE_DIR"
@@ -275,6 +283,29 @@ test_directories(){
 		exit 1
 	fi	
 }
+
+patch_sources(){
+	# added due to issue N° 1 : Gcc-4.8.1 need a patch which is not applied to the archive
+	# ... but they will maybe are more than one
+	cd ${BASE_DIR}/${LOG_DIR}
+	if [ -f \${$1[1]}-\${$1[2]}_patching.log ]; then
+		echo "gcc dir already patched ... skipped"
+	else
+		cd ${BASE_DIR}/${PATHES_DIR}
+		if [ -d /\${$1[1]}-\${$1[2]} ]; then
+			cd ${BASE_SRC}/\${$1[1]}-\${$1[2]}
+			echo -n "applying patch  to \${$1[1]}-\${$1[2]} ..."
+			for file in $(ls ../../${PATHES_DIR}/\${$1[1]}-\${$1[2]}); do
+				echo "applying ${file} ..."
+				patch -p < ../../${PATHES_DIR}/\${$1[1]}-\${$1[2]}/${file} >${BASE_DIR}/${LOG_DIR}/${file}_patching.log
+				echo "done"
+			done
+		else
+			echo "fine, there are not patch to be applied"
+		fi
+	fi
+	cd ${BASE_DIR}
+}
 extract_archive(){
 	cd $BASE_DIR
 	cd $TAR_DIR
@@ -304,6 +335,7 @@ extract_archive(){
 		cd ${TAR_DIR}
 		echo "extracting with $OPT command line option"
 		tar $OPT $FILENAME -C ../${BASE_SRC} > ../${LOG_DIR}/${NAME}${VERSION}_unarchive.log
+		patch_sources ${1}
 	fi
 	cd $BASE_DIR
 }
@@ -787,36 +819,63 @@ create_batch_file(){
 	echo "done"
 	cd ${BASE_DIR}
 }
+get_patches(){
+	cd ${BASE_DIR}/${TAR_DIR}
+	if [ ! -f patches.tar.bz2 ] ; then
+		wget --no-check-certificate https://github.com/PhDunski/build-mingw-w64/blob/master/patches.tar.bz2?raw=true
+	fi
+	echo -n "extracting patches..."
+	if [ ! -d ..${PATCHES_DIR} ]; then
+		tar -vxjf patches.tar.bz2 -C .. > ../${LOG_DIR}/patches_unarchive.log
+		echo "done"
+	elif [ -d ..${PATCHES_DIR} ]; then
+		echo " skipped"
+	fi
+	cd ${BASE_DIR}
+}
 test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
 test_directories "${TAR_DIR}" "${CLEAN_TAR}"
 test_directories "${BASE_SRC}" "${CLEAN_SRC}"
 test_directories "${LOG_DIR}" "${CLEAN_LOG}"
+get_patches
 get_source MINGW_BASE
-build_prereq
-build_headers
-create_symlinks
-get_source "GCC"
-extract_archive "GCC"
-configure_elem "GCC"
-make_all_gcc
-make_install_gcc
-make_winpthread_1
-build_crt
-with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
-only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
-this trick ensure that there will always one of those path which provides 32bits 
-libraries v
-if [ -d ${PREFIX}/mingw/lib ]; then
-	rm -rf ${PREFIX}/mingw/lib
-	ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+if [ "${PASS}" == "1" ]; then
+	build_prereq
+	build_headers
+	create_symlinks
+	get_source "GCC"
+	extract_archive "GCC"
+exit
+	configure_elem "GCC"
+	make_all_gcc
+	make_install_gcc
+	make_winpthread_1
+	build_crt
+	# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
+	# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
+	# this trick ensure that there will always one of those path which provides 32bits 
+	# but allows correct configurations to work too
+	if [ -d ${PREFIX}/mingw/lib ]; then
+		rm -rf ${PREFIX}/mingw/lib
+		ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+	fi
+	make_all_target
+	make_install_target 
+	correct_libdir
+	make_winpthread_2
+	make_elem "GCC"
+	install_elem "GCC"
+	copy_dlls
+	final_cleanup
+	create_batch_file
+	correct_libdir
+	PASS=2
+	build_elem  "BINUTILS"
 fi
-make_all_target
-make_install_target 
-correct_libdir
-make_winpthread_2
-make_elem "GCC"
-install_elem "GCC"
-copy_dlls
-final_cleanup
-create_batch_file
-correct_libdir
+if [ "$SECOND_PASS_ENABLED" == "yes" ]; then
+	build_prereq
+	GCC[23]=--disable-bootstrap
+	configure_elem "GCC"
+	make_elem "GCC"
+	install_elem "GCC"
+fi
