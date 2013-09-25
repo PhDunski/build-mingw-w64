@@ -285,23 +285,26 @@ test_directories(){
 }
 
 patch_sources(){
-	# added due to issue N° 1 : Gcc-4.8.1 need a patch which is not applied to the archive
-	# ... but they will maybe are more than one
-	cd ${BASE_DIR}/${LOG_DIR}
-	if [ -f \${$1[1]}-\${$1[2]}_patching.log ]; then
-		echo "gcc dir already patched ... skipped"
-	else
-		cd ${BASE_DIR}/${PATHES_DIR}
-		if [ -d /\${$1[1]}-\${$1[2]} ]; then
-			cd ${BASE_SRC}/\${$1[1]}-\${$1[2]}
-			echo -n "applying patch  to \${$1[1]}-\${$1[2]} ..."
-			for file in $(ls ../../${PATHES_DIR}/\${$1[1]}-\${$1[2]}); do
-				echo "applying ${file} ..."
-				patch -p < ../../${PATHES_DIR}/\${$1[1]}-\${$1[2]}/${file} >${BASE_DIR}/${LOG_DIR}/${file}_patching.log
-				echo "done"
-			done
+	cd cd ${BASE_DIR}
+	if [ -d ${PATCHES_DIR} ]; then
+		# added due to issue N° 1 : Gcc-4.8.1 need a patch which is not applied to the archive
+		# ... but they will maybe are more than one
+		cd ${BASE_DIR}/${LOG_DIR}
+		if [ -f \${$1[1]}-\${$1[2]}_patching.log ]; then
+			echo "gcc dir already patched ... skipped"
 		else
-			echo "fine, there are not patch to be applied"
+			cd ${BASE_DIR}/${PATCHES_DIR}
+			if [ -d /\${$1[1]}-\${$1[2]} ]; then
+				cd ${BASE_SRC}/\${$1[1]}-\${$1[2]}
+				echo -n "applying patch  to \${$1[1]}-\${$1[2]} ..."
+				for file in $(ls ../../${PATCHES_DIR}/\${$1[1]}-\${$1[2]}); do
+					echo "applying ${file} ..."
+					patch -p < ../../${PATCHES_DIR}/\${$1[1]}-\${$1[2]}/${file} >${BASE_DIR}/${LOG_DIR}/${file}_patching.log
+					echo "done"
+				done
+			else
+				echo "fine, there are not patch to be applied"
+			fi
 		fi
 	fi
 	cd ${BASE_DIR}
@@ -845,7 +848,6 @@ if [ "${PASS}" == "1" ]; then
 	create_symlinks
 	get_source "GCC"
 	extract_archive "GCC"
-exit
 	configure_elem "GCC"
 	make_all_gcc
 	make_install_gcc
