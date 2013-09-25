@@ -15,7 +15,7 @@ PREREQUIS
 - un dossier dans le parent duquel  MSYS a les accès en écriture
 - Environs 5 Gb d'espace disponible sur le disque dur 
 	+/- 1.5 Gb pour le dossier d'installation, 
-	+/- 3.5Gb pour le processus complet 
+	+/- 3.5Gb pour le processus complet (les fichiers peuvent être supprimés une fois le processus achevé)
 
 ARBORESCENCE
 ============
@@ -33,6 +33,7 @@ L'arborescence créée par le script prendra la forme de
 	|->sources (créé automatiquement par le script s'il n'existe pas):
 	|           dossier dans lequel seront placés le contenu des archives décompressées et / ou
 	|           les contenus récupérés par SVN
+	|->patches	(créé à l'extraction de l'archive qui la contient)
 	
 VARIABLES MODIFIABLES
 =====================
