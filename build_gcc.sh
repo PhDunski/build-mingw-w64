@@ -19,8 +19,9 @@ FORCE_RECONFIGURE=no
 FORCE_REBUILD=no
 FORCE_REINSTALL=no
 FIRST_PASS_ENABLED=yes
-SECOND_PASS_ENABLED=no
-
+SECOND_PASS_ENABLED=yes
+NEED_SYMLINK=yes
+KEEP_DEPENDENCIES=no
 PASS="1"
 if [ "$FIRST_PASS_ENABLED" == "yes" ]; then
 	PASS="1"
@@ -285,21 +286,23 @@ test_directories(){
 }
 
 patch_sources(){
-	cd cd ${BASE_DIR}
+	cd  ${BASE_DIR}
 	if [ -d ${PATCHES_DIR} ]; then
+			eval DIR="\${$1[0]}\${$1[1]}"
+			echo " ${DIR} "
 		# added due to issue N° 1 : Gcc-4.8.1 need a patch which is not applied to the archive
 		# ... but they will maybe are more than one
 		cd ${BASE_DIR}/${LOG_DIR}
-		if [ -f \${$1[1]}-\${$1[2]}_patching.log ]; then
-			echo "gcc dir already patched ... skipped"
+		if [ -f ${DIR}_patching.log ]; then
+			echo "${DIR}  dir already patched ... skipped"
 		else
 			cd ${BASE_DIR}/${PATCHES_DIR}
-			if [ -d /\${$1[1]}-\${$1[2]} ]; then
-				cd ${BASE_SRC}/\${$1[1]}-\${$1[2]}
-				echo -n "applying patch  to \${$1[1]}-\${$1[2]} ..."
-				for file in $(ls ../../${PATCHES_DIR}/\${$1[1]}-\${$1[2]}); do
+			if [ -d ${DIR} ]; then
+				cd ${BASE_DIR}/${BASE_SRC}/${DIR}
+				echo -n "applying patch  to ${DIR} ..."
+				for file in $(ls ../../${PATCHES_DIR}/${DIR}); do
 					echo "applying ${file} ..."
-					patch -p < ../../${PATCHES_DIR}/\${$1[1]}-\${$1[2]}/${file} >${BASE_DIR}/${LOG_DIR}/${file}_patching.log
+					patch -p0 < ../../${PATCHES_DIR}/${DIR}/${file} >${BASE_DIR}/${LOG_DIR}/${DIR}_patching.log
 					echo "done"
 				done
 			else
@@ -567,6 +570,7 @@ make_winpthread_1(){
 		echo "done"
 		make_elem "${NAME}"
 		install_elem "${NAME}"
+		NEED_SYMLINK=yes
 	fi
 	cd ${BASE_DIR}/${LOG_DIR}
 	NAME=${WPT32[0]}
@@ -590,6 +594,7 @@ make_winpthread_1(){
 		echo "done"
 		make_elem "${NAME}"
 		install_elem "${NAME}"
+		NEED_SYMLINK=yes
 	fi
 	cp -rf ${PREFIX}/${WPT64[0]}/include/* ${PREFIX}/${BUILD}/include
 	cp -rf ${PREFIX}/${WPT64[0]}/lib/* ${PREFIX}/${BUILD}/lib
@@ -599,11 +604,15 @@ make_winpthread_1(){
 	cp -rf ${PREFIX}/${WPT32[0]}/lib/* ${PREFIX}/${BUILD}/lib32
 
 	cd ${PREFIX}/${BUILD}
-	if [ -d lib ] && [ -d lib64 ]; then
-		rm -rf lib64
+	if [ "$NEED_SYMLINK" == "yes" ]; then
+		if [ -d lib ] && [ -d lib64 ]; then
+			rm -rf lib64
+		fi
+		ln -s lib lib64
+	
+		create_symlinks
 	fi
-	ln -s lib lib64
-	create_symlinks
+	NEED_SYMLINK=no
 	cd ${BASE_DIR}
 }
 
@@ -636,6 +645,7 @@ FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
 		echo "done"
 		make_elem "${NAME}"
 		install_elem "${NAME}"
+		NEED_SYMLINK=yes
 	fi
 	cd ${BASE_DIR}/${LOG_DIR}
 	NAME=${WPT32_2}
@@ -656,6 +666,7 @@ FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
 		echo "done"
 		make_elem "${NAME}"
 		install_elem "${NAME}"
+		NEED_SYMLINK=yes
 	fi
 	if [ -d ${PREFIX}/${WPT64_2[0]}/include ]; then
 	cp -rf ${PREFIX}/${WPT64_2[0]}/include/* ${PREFIX}/${BUILD}/include
@@ -676,13 +687,15 @@ FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
 		cp -rf ${PREFIX}/${WPT32_2[0]}/bin/* ${PREFIX}/bin/32
 	fi
 	cd ${PREFIX}/${BUILD}
-	if [ -d lib ] && [ -d lib64 ]; then
-		rm -rf lib64
-	fi
-	if [ -d lib ]; then
+	if [ "$NEED_SYMLINK" == "yes" ]; then
+		if [ -d lib ] && [ -d lib64 ]; then
+			rm -rf lib64
+		fi
 		ln -s lib lib64
+	
+		create_symlinks
 	fi
-	create_symlinks
+	NEED_SYMLINK=no
 
 FORCE_RECONFIGURE=${OLD_RECONF}
 FORCE_REBUILD=${OLD_REBUILD}
@@ -709,13 +722,21 @@ build_crt(){
 		echo done
 		make_elem "${NAME}"
 		install_elem "${NAME}"
+		NEED_SYMLINK=yes
 	fi
 	cd ${PREFIX}/${BUILD}
 	if [ -d lib ] && [ -d lib64 ]; then
 		rm -rf lib64
 	fi
-	ln -s lib lib64
-	create_symlinks
+	if [ "$NEED_SYMLINK" == "yes" ]; then
+		if [ -d lib ] && [ -d lib64 ]; then
+			rm -rf lib64
+		fi
+		ln -s lib lib64
+	
+		create_symlinks
+	fi
+	NEED_SYMLINK=no
 	cd ${BASE_DIR}
 }
 make_all_target(){
@@ -793,11 +814,13 @@ copy_dlls(){
 	cd ${BASE_DIR}
 }
 final_cleanup(){
+
 	echo "--- final cleanup --- "
 	echo  "cleaning up ${PREFIX} directory ..."
 	cd ${PREFIX}
 	echo `pwd`
-	for dir in mingw winpthread_32 winpthread_32_2 winpthread_64 winpthread_64_2; do
+	DIRS_TO_CLEAN='mingw winpthread_32 winpthread_32_2 winpthread_64 winpthread_64_2'
+	for dir in $DIRS_TO_CLEAN; do
 		echo -n "removing ${dir} if exists..."
 		if [ -d ${dir} ]; then
 			rm -rf ${dir}
@@ -806,6 +829,7 @@ final_cleanup(){
 	done
 	echo "done"
 	cd ${BASE_DIR}
+	
 }
 create_batch_file(){
 	cd ${PREFIX}
