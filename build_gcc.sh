@@ -20,8 +20,15 @@ FORCE_REBUILD=no
 FORCE_REINSTALL=no
 FIRST_PASS_ENABLED=yes
 SECOND_PASS_ENABLED=yes
-NEED_SYMLINK=yes
+WANT_GDB=yes
+WANT_MAKE=yes
+WANT_ICONV=yes
+WANT_GETTEXT=yes
+WANT_OPENSSL=yes
+WANT_XML2=yes
 KEEP_DEPENDENCIES=no
+
+NEED_SYMLINK=yes
 PASS="1"
 if [ "$FIRST_PASS_ENABLED" == "yes" ]; then
 	PASS="1"
@@ -33,6 +40,12 @@ if [ "${FORCE_RECONFIGURE}" == "yes" ]; then
 fi
 if [ "${FORCE_REBUILD}" == "yes" ]; then
 	FORCE_REINSTALL=yes
+fi
+if [ "${WANT_GETTEXT}" == "yes" ]; then
+	if [ "${WANT_ICONV}" == "no" ]; then
+		echo "libiconv is needed to build gettext, enabling it"
+	fi
+	WANT_ICONV=yes
 fi
 SRC_DIR="../../source"
 
@@ -245,13 +258,86 @@ MINGW_BASE[0]=mingw
 MINGW_BASE[1]=6299
 MINGW_BASE[3]=release
 MINGW_BASE[5]=svn://svn.code.sf.net/p/mingw-w64/code/trunk
-declare -a ERROR_TEST
-ERROR_TEST[0]=will-fail
-ERROR_TEST[1]=-0.0.1
-ERROR_TEST[2]=error
-ERROR_TEST[3]=release
-ERROR_TEST[4]=http://www.mpfr.org/mpfr-current
-#ERROR_TEST[5]=doit
+
+declare -a GDB
+GDB[0]=gdb
+GDB[1]=-7.6.1
+GDB[2]=.tar.bz2
+GDB[3]=release
+GDB[4]=ftp://gcc.gnu.org/pub/${GDB[0]}/${GDB[3]}s/
+if [ "${GDB[3]}" == "snapshot" ]; then
+	GDB[4]=ftp://gcc.gnu.org/pub/${GDB[0]}/${GDB[3]}s/branch
+fi
+GDB[5]=
+GDB[6]=
+GDB[7]=--build=${BUILD}
+GDB[8]=--prefix=${PREFIX}
+GDB[9]=--with-sysroot=${PREFIX}
+GDB[10]=--enable-shared
+GDB[11]=--enable-static
+GDB[11]=--disable-nls
+declare -a MAKE
+MAKE[0]=make
+MAKE[1]=-3.82
+MAKE[2]=.tar.gz
+MAKE[3]=release
+MAKE[4]=ftp://ftp.gnu.org/gnu/make
+MAKE[5]=
+MAKE[6]=
+MAKE[7]=--build=${BUILD}
+MAKE[8]=--prefix=${PREFIX}
+MAKE[9]=--with-sysroot=${PREFIX}
+MAKE[10]=--disable-nls
+declare -a ICONV
+ICONV[0]=libiconv
+ICONV[1]=-1.92.2
+ICONV[2]=.tar.gz
+ICONV[3]=release
+ICONV[4]=ftp://ftp.gnu.org/gnu/libiconv/
+ICONV[5]=
+ICONV[6]=
+ICONV[7]=--build=${BUILD}
+ICONV[8]=--prefix=${PREFIX}
+ICONV[9]=--enable-shared
+ICONV[10]=--enable-static
+ICONV[11]=--disable-nls
+declare -a GETTEXT
+GETTEXT[0]=gettext
+GETTEXT[1]=-0.18.3
+GETTEXT[2]=.tar.gz
+GETTEXT[3]=release
+GETTEXT[4]=ftp://ftp.gnu.org/gnu/gettext
+GETTEXT[5]=
+GETTEXT[6]=
+GETTEXT[7]=--build=${BUILD}
+GETTEXT[8]=--prefix=${PREFIX}
+GETTEXT[9]=--enable-shared
+GETTEXT[10]=--enable-static
+GETTEXT[11]=--disable-nls
+declare -a OPENSSL
+OPENSSL[0]=openssl
+OPENSSL[1]=-1.0.1e
+OPENSSL[2]=.tar.gz
+OPENSSL[3]=release
+OPENSSL[4]=http://www.openssl.org/source
+OPENSSL[5]=
+OPENSSL[6]=
+OPENSSL[7]=mingw64
+OPENSSL[8]=--prefix=${PREFIX}/openssl
+
+declare -a XML2
+XML2[0]=libxml2
+XML2[1]=-2.9.1
+XML2[2]=.tar.gz
+XML2[3]=release
+XML2[4]=https://git.gnome.org/browse/libxml2/snapshot
+XML2[5]=
+XML2[6]=
+XML2[7]=--build=${BUILD}
+XML2[8]=--prefix=${PREFIX}/libxml2
+XML2[9]=--enable-shared
+XML2[10]=--enable-static
+XML2[11]=--disable-nls
 
 
 PREREQ='BINUTILS GMP MPFR MPC ISL CLOOG'
@@ -513,6 +599,16 @@ build_headers(){
 	install_elem "headers"
 }
 create_symlinks(){
+if [ "$NEED_SYMLINK" == "yes" ]; then
+	cd ${PREFIX}/${BUILD}
+	if [ -d lib ] && [ -d lib64 ]; then
+		echo -n"removing ${PREFIX}/${BUILD}/lib64..."
+		rm -rf lib64
+		echo "done"
+	fi	
+	echo -n "linking ${PREFIX}/${BUILD}/lib to ${PREFIX}/${BUILD}/lib64..."
+	ln -s lib lib64
+	echo done
 	cd ${PREFIX}
 	if [ -d mingw ]; then
 		echo -n "removing ${PREFIX}/mingw sub directory ..."
@@ -522,6 +618,22 @@ create_symlinks(){
 	echo -n "linking ${PREFIX}/${BUILD} to ${PREFIX}/mingw  ..."
 	ln -s "${BUILD}" mingw
 	echo "done"
+	
+	# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
+	# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
+	# this trick ensure that there will always one of those path which provides 32bits 
+	# but allows correct configurations to work too
+	cd ${PREFIX}/mingw
+	if [ -d lib ] &&
+	   [ -d lib64 ] &&
+	   [ -d lib32 ]
+	; then
+		echo -n "correcting ${PREFIX}/mingw/lib symlink ..."
+		rm -rf ${PREFIX}/mingw/lib
+		ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+		echo done
+	fi
+	NEED_SYMLINK=no
 	cd ${BASE_DIR}
 }
 make_all_gcc(){
@@ -603,16 +715,8 @@ make_winpthread_1(){
 	fi
 	cp -rf ${PREFIX}/${WPT32[0]}/lib/* ${PREFIX}/${BUILD}/lib32
 
-	cd ${PREFIX}/${BUILD}
-	if [ "$NEED_SYMLINK" == "yes" ]; then
-		if [ -d lib ] && [ -d lib64 ]; then
-			rm -rf lib64
-		fi
-		ln -s lib lib64
 	
-		create_symlinks
-	fi
-	NEED_SYMLINK=no
+	create_symlinks
 	cd ${BASE_DIR}
 }
 
@@ -686,16 +790,7 @@ FORCE_REINSTALL=yes	cd ${BASE_DIR}/${LOG_DIR}
 	if [ -d  ${PREFIX}/${WPT32_2[0]}/bin ]; then
 		cp -rf ${PREFIX}/${WPT32_2[0]}/bin/* ${PREFIX}/bin/32
 	fi
-	cd ${PREFIX}/${BUILD}
-	if [ "$NEED_SYMLINK" == "yes" ]; then
-		if [ -d lib ] && [ -d lib64 ]; then
-			rm -rf lib64
-		fi
-		ln -s lib lib64
-	
-		create_symlinks
-	fi
-	NEED_SYMLINK=no
+	create_symlinks
 
 FORCE_RECONFIGURE=${OLD_RECONF}
 FORCE_REBUILD=${OLD_REBUILD}
@@ -724,19 +819,7 @@ build_crt(){
 		install_elem "${NAME}"
 		NEED_SYMLINK=yes
 	fi
-	cd ${PREFIX}/${BUILD}
-	if [ -d lib ] && [ -d lib64 ]; then
-		rm -rf lib64
-	fi
-	if [ "$NEED_SYMLINK" == "yes" ]; then
-		if [ -d lib ] && [ -d lib64 ]; then
-			rm -rf lib64
-		fi
-		ln -s lib lib64
-	
-		create_symlinks
-	fi
-	NEED_SYMLINK=no
+	create_symlinks
 	cd ${BASE_DIR}
 }
 make_all_target(){
@@ -867,6 +950,59 @@ clean_builddir(){
 	echo "done"
 	cd ${BASE_DIR}
 }
+build_gdb(){
+	if [ "$WANT_GDB" == "yes" ]; then
+		get_source "GDB"
+		build_elem "GDB"
+	fi
+	cd ${BASE_DIR}
+}
+build_make(){
+	if [ "$WANT_MAKE" == "yes" ]; then
+		get_source "MAKE"
+		extract_archive "MAKE"
+		configure_elem "MAKE"
+		make_elem "MAKE"
+		# there seem to be a problem with the "install" script for make.
+		# we turn this problem around by simply copying the newly compiled make.exe as
+		# mingw32-make.exe in the ${PREFIX}/bin directory
+		cd ${BASE_DIR}/${BUILD_DIR}/make
+		cp make.exe ${PREFIX}/bin/mingw32-make.exe
+	fi
+	cd ${BASE_DIR}
+}
+build_iconv(){
+	if [ "$WANT_ICONV" == "yes" ]; then
+		get_source "ICONV"
+		build_elem "ICONV"
+	fi
+	cd ${BASE_DIR}
+}
+build_gettext(){
+	if [ "$WANT_GETTEXT" == "yes" ]; then
+		get_source "GETTEXT"
+		build_elem "GETTEXT"
+	fi
+	cd ${BASE_DIR}
+}
+build_xml2(){
+	if [ "$WANT_XML2" == "yes" ]; then
+		get_source "XML2"
+		build_elem "XML2"
+	fi
+	cd ${BASE_DIR}
+}
+build_openssl{
+	if [ "$WANT_openssl" == "yes" ]; then
+		get_source "XML2"
+		cd ${BASE_DIR}/${BASE_SRC}/${OPENSSL[0]}${OPENSSL[1]}
+		Configure ${OPENSSL[7]} ${OPENSSL[8]} > ../../${LOG_DIR}/${OPENSSL[0]}_configure.log 2>&1 || exit 1
+		make > ../../${LOG_DIR}/${OPENSSL[0]}_build.log 2>&1 || exit 1
+		make install > ../../${LOG_DIR}/${OPENSSL[0]}_install.log 2>&1 || exit 1
+	fi
+	cd ${BASE_DIR}
+
+}
 test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
 test_directories "${TAR_DIR}" "${CLEAN_TAR}"
 test_directories "${BASE_SRC}" "${CLEAN_SRC}"
@@ -884,14 +1020,6 @@ if [ "${PASS}" == "1" ]; then
 	make_install_gcc
 	make_winpthread_1
 	build_crt
-	# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
-	# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
-	# this trick ensure that there will always one of those path which provides 32bits 
-	# but allows correct configurations to work too
-	if [ -d ${PREFIX}/mingw/lib ]; then
-		rm -rf ${PREFIX}/mingw/lib
-		ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
-	fi
 	make_all_target
 	make_install_target 
 	correct_libdir
@@ -914,3 +1042,9 @@ if [ "$SECOND_PASS_ENABLED" == "yes" ]; then
 	make_elem "GCC"
 	install_elem "GCC"
 fi
+build_gdb
+build_make
+build_iconv
+build_gettext
+build_openssl
+build_xml2
