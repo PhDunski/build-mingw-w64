@@ -19,7 +19,7 @@ FORCE_RECONFIGURE=no
 FORCE_REBUILD=no
 FORCE_REINSTALL=no
 FIRST_PASS_ENABLED=yes
-SECOND_PASS_ENABLED=yes
+SECOND_PASS_ENABLED=no
 WANT_GDB=yes
 WANT_MAKE=yes
 WANT_ICONV=yes
@@ -262,20 +262,21 @@ MINGW_BASE[5]=svn://svn.code.sf.net/p/mingw-w64/code/trunk
 declare -a GDB
 GDB[0]=gdb
 GDB[1]=-7.6.1
-GDB[2]=.tar.bz2
+GDB[2]=.tar.gz
 GDB[3]=release
 GDB[4]=ftp://gcc.gnu.org/pub/${GDB[0]}/${GDB[3]}s/
 if [ "${GDB[3]}" == "snapshot" ]; then
 	GDB[4]=ftp://gcc.gnu.org/pub/${GDB[0]}/${GDB[3]}s/branch
 fi
 GDB[5]=
-GDB[6]=
+GDB[6]=doit
 GDB[7]=--build=${BUILD}
 GDB[8]=--prefix=${PREFIX}
 GDB[9]=--with-sysroot=${PREFIX}
 GDB[10]=--enable-shared
 GDB[11]=--enable-static
 GDB[11]=--disable-nls
+GDB[12]='CFLAGS=-m64'
 declare -a MAKE
 MAKE[0]=make
 MAKE[1]=-3.82
@@ -290,12 +291,12 @@ MAKE[9]=--with-sysroot=${PREFIX}
 MAKE[10]=--disable-nls
 declare -a ICONV
 ICONV[0]=libiconv
-ICONV[1]=-1.92.2
+ICONV[1]=-1.14
 ICONV[2]=.tar.gz
 ICONV[3]=release
-ICONV[4]=ftp://ftp.gnu.org/gnu/libiconv/
+ICONV[4]=ftp://ftp.gnu.org/gnu/libiconv
 ICONV[5]=
-ICONV[6]=
+ICONV[6]=doit
 ICONV[7]=--build=${BUILD}
 ICONV[8]=--prefix=${PREFIX}
 ICONV[9]=--enable-shared
@@ -330,8 +331,8 @@ XML2[0]=libxml2
 XML2[1]=-2.9.1
 XML2[2]=.tar.gz
 XML2[3]=release
-XML2[4]=https://git.gnome.org/browse/libxml2/snapshot
-XML2[5]=
+XML2[4]=ftp://xmlsoft.org/libxml2
+XML2[5]=doit
 XML2[6]=
 XML2[7]=--build=${BUILD}
 XML2[8]=--prefix=${PREFIX}/libxml2
@@ -599,41 +600,41 @@ build_headers(){
 	install_elem "headers"
 }
 create_symlinks(){
-if [ "$NEED_SYMLINK" == "yes" ]; then
-	cd ${PREFIX}/${BUILD}
-	if [ -d lib ] && [ -d lib64 ]; then
-		echo -n"removing ${PREFIX}/${BUILD}/lib64..."
-		rm -rf lib64
-		echo "done"
-	fi	
-	echo -n "linking ${PREFIX}/${BUILD}/lib to ${PREFIX}/${BUILD}/lib64..."
-	ln -s lib lib64
-	echo done
-	cd ${PREFIX}
-	if [ -d mingw ]; then
-		echo -n "removing ${PREFIX}/mingw sub directory ..."
-		rm -rf mingw
-		echo "done"
-	fi
-	echo -n "linking ${PREFIX}/${BUILD} to ${PREFIX}/mingw  ..."
-	ln -s "${BUILD}" mingw
-	echo "done"
-	
-	# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
-	# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
-	# this trick ensure that there will always one of those path which provides 32bits 
-	# but allows correct configurations to work too
-	cd ${PREFIX}/mingw
-	if [ -d lib ] &&
-	   [ -d lib64 ] &&
-	   [ -d lib32 ]
-	; then
-		echo -n "correcting ${PREFIX}/mingw/lib symlink ..."
-		rm -rf ${PREFIX}/mingw/lib
-		ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+	if [ "$NEED_SYMLINK" == "yes" ]; then
+		cd ${PREFIX}/${BUILD}
+		if [ -d lib ] && [ -d lib64 ]; then
+			echo -n"removing ${PREFIX}/${BUILD}/lib64..."
+			rm -rf lib64
+			echo "done"
+		fi	
+		echo -n "linking ${PREFIX}/${BUILD}/lib to ${PREFIX}/${BUILD}/lib64..."
+		ln -s lib lib64
 		echo done
+		cd ${PREFIX}
+		if [ -d mingw ]; then
+			echo -n "removing ${PREFIX}/mingw sub directory ..."
+			rm -rf mingw
+			echo "done"
+		fi
+		echo -n "linking ${PREFIX}/${BUILD} to ${PREFIX}/mingw  ..."
+		ln -s "${BUILD}" mingw
+		echo "done"
+		
+		# with Gcc 4.8.x, there is a miss configuration in the libgcc/32 script which
+		# only set ${PREFIX}/mingw/lib and ${PREFIX}/${BUILD}/lib as libraries search paths
+		# this trick ensure that there will always one of those path which provides 32bits 
+		# but allows correct configurations to work too
+		cd ${PREFIX}/mingw
+		if [ -d lib ] &&
+		   [ -d lib64 ] &&
+		   [ -d lib32 ]	; then
+			echo -n "correcting ${PREFIX}/mingw/lib symlink ..."
+			rm -rf ${PREFIX}/mingw/lib
+			ln -s ${PREFIX}/mingw/lib32 ${PREFIX}/mingw/lib
+			echo done
+		fi
+		NEED_SYMLINK=no
 	fi
-	NEED_SYMLINK=no
 	cd ${BASE_DIR}
 }
 make_all_gcc(){
@@ -987,12 +988,16 @@ build_gettext(){
 }
 build_xml2(){
 	if [ "$WANT_XML2" == "yes" ]; then
+		cd ${BASE_DIR}/${TAR_DIR}
+		if [ ! -f ${XML2[0]}${XML2[1]}${XML2[2]} ]; then
+			wget --no-check-certificate ${XML2[4]}/${XML2[0]}${XML2[1]}${XML2[2]}
+		fi
 		get_source "XML2"
 		build_elem "XML2"
 	fi
 	cd ${BASE_DIR}
 }
-build_openssl{
+build_openssl(){
 	if [ "$WANT_openssl" == "yes" ]; then
 		get_source "XML2"
 		cd ${BASE_DIR}/${BASE_SRC}/${OPENSSL[0]}${OPENSSL[1]}
@@ -1028,7 +1033,6 @@ if [ "${PASS}" == "1" ]; then
 	install_elem "GCC"
 	copy_dlls
 	final_cleanup
-	create_batch_file
 	correct_libdir
 	PASS=2
 	build_elem  "BINUTILS"
@@ -1048,3 +1052,4 @@ build_iconv
 build_gettext
 build_openssl
 build_xml2
+create_batch_file
