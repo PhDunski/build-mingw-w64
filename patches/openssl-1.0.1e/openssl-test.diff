@@ -1,0 +1,18 @@
+--- test/md2test.c	2013-02-11 15:26:11 +0000
++++ test/md2test.c	2013-02-11 15:26:11 +0000
+@@ -1 +1 @@
+-dummytest.c
+\ No newline at end of file
++#include "dummytest.c"
+--- test/jpaketest.c	2013-02-11 15:26:11 +0000
++++ test/jpaketest.c	2013-02-11 15:26:11 +0000
+@@ -1 +1 @@
+-dummytest.c
+\ No newline at end of file
++#include "dummytest.c"
+--- test/rc5test.c	2013-02-11 15:26:11 +0000
++++ test/rc5test.c	2013-02-11 15:26:11 +0000
+@@ -1 +1 @@
+-dummytest.c
+\ No newline at end of file
++#include "dummytest.c"
