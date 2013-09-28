@@ -8,7 +8,4 @@ Liste des choses à faire:
 - trouver un moyen d'introduire l'option RCFLAGS="-U_WIN64 -F pe-i386" dans les options de 
   compilation de wpt32_2
   
-- Dans certaines occasions, le script supprime et recrée le dossier ${PREFIX}/mingw inutilement. 
-  A corriger
-
-- ajouter les différents outils externes (Gdb, make, Xml2, gettext)
+- ajouter les différents outils externes (icu)
