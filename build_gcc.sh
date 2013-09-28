@@ -860,6 +860,13 @@ get_patches(){
 	fi
 	cd ${BASE_DIR}
 }
+clean_builddir(){
+	cd ${BASE_DIR}/${BUILD_DIR}
+	echo -n "removing pass 1 build directories ... "
+	rm -rf *
+	echo "done"
+	cd ${BASE_DIR}
+}
 test_directories "${BUILD_DIR}" "${CLEAN_BUILD}"
 test_directories "${TAR_DIR}" "${CLEAN_TAR}"
 test_directories "${BASE_SRC}" "${CLEAN_SRC}"
@@ -899,7 +906,9 @@ if [ "${PASS}" == "1" ]; then
 	build_elem  "BINUTILS"
 fi
 if [ "$SECOND_PASS_ENABLED" == "yes" ]; then
+	clean_builddir
 	build_prereq
+	create_symlinks
 	GCC[23]=--disable-bootstrap
 	configure_elem "GCC"
 	make_elem "GCC"
