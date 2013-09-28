@@ -39,6 +39,16 @@ CLEAN_BUILD=no      force au nettoyage du dossier log. Placer cette variable a y
 					de supprimer l'ensemble contenu du dossier défini avec la variable BUILD_DIR
 FIRST_PASS_ENABLED  indique s'il faut effectuer une première passe (valeur par défaut : yes)
 SECOND_PASS_ENABLED  indique s'il faut effectuer une seconde passe (valeur par défaut : no)
+
+WANT_XXX			Permet d'indiquer si on veut que le paquet XXX soit (compilé) (valeur par défaut: yes)
+					Pour l'instant, les paquets installables sont:
+						- Gdb (le débuggeur)
+						- make
+						- libiconv 
+						- gettext ( !!! gettext dépend de libiconv, choisir d'installer gettext 
+						           forcera l'installation de libiconv)
+						- openssl
+						- libxml2
 					
 NOTA : Le script se base, pour les archives, sur la présence ou sur l'absence de fichier dont le nom est
 	   défini pour déterminer s'il faut ou non le télécharger et sur la présence d'un fichier log pour
